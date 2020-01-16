@@ -81,15 +81,14 @@ class VectorApplication : Application(), HasVectorInjector, MatrixConfiguration.
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
         appContext = this
         vectorComponent = DaggerVectorComponent.factory().create(this)
         vectorComponent.inject(this)
         vectorUncaughtExceptionHandler.activate(this)
         rxConfig.setupRxPlugin()
-
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
         Timber.plant(vectorComponent.vectorFileLogger())
 
         if (BuildConfig.DEBUG) {

@@ -24,11 +24,16 @@ import dagger.Provides
 import im.vector.matrix.android.api.auth.AuthenticationService
 import im.vector.matrix.android.internal.auth.realm.AuthRealmMigration
 import im.vector.matrix.android.internal.auth.realm.AuthRealmModule
+import im.vector.matrix.android.internal.auth.realm.RealmPendingSessionStore
+import im.vector.matrix.android.internal.auth.realm.RealmSessionParamsStore
+import im.vector.matrix.android.internal.auth.sqlite.AuthSchema
 import im.vector.matrix.android.internal.auth.sqlite.SqlitePendingSessionStore
 import im.vector.matrix.android.internal.auth.sqlite.SqliteSessionParamsStore
 import im.vector.matrix.android.internal.database.RealmKeysUtils
 import im.vector.matrix.android.internal.db.auth.AuthDatabase
+import im.vector.matrix.android.internal.di.MatrixScope
 import io.realm.RealmConfiguration
+import timber.log.Timber
 import java.io.File
 
 @Module
@@ -41,6 +46,7 @@ internal abstract class AuthModule {
         @JvmStatic
         @Provides
         @im.vector.matrix.android.internal.di.AuthDatabase
+        @MatrixScope
         fun providesRealmConfiguration(context: Context, realmKeysUtils: RealmKeysUtils): RealmConfiguration {
             val old = File(context.filesDir, "matrix-sdk-auth")
             if (old.exists()) {
@@ -60,11 +66,11 @@ internal abstract class AuthModule {
 
         @JvmStatic
         @Provides
-        fun providesAuthDatabase(context: Context): AuthDatabase {
-            val driver = AndroidSqliteDriver(AuthDatabase.Schema, context, "matrix-sdk-auth.db")
-            return AuthDatabase(driver)
+        @MatrixScope
+        fun providesAuthDatabase(context: Context, authSchema: AuthSchema): AuthDatabase {
+            val driver = AndroidSqliteDriver(authSchema, context, "matrix-sdk-auth.db")
+            return AuthDatabase.invoke(driver)
         }
-
     }
 
     @Binds
