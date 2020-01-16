@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package im.vector.matrix.android.internal.auth.db
+package im.vector.matrix.android.internal.auth.realm
 
+import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.Moshi
 import im.vector.matrix.android.api.auth.data.Credentials
 import im.vector.matrix.android.api.auth.data.HomeServerConnectionConfig
@@ -27,6 +28,15 @@ internal class SessionParamsMapper @Inject constructor(moshi: Moshi) {
 
     private val credentialsAdapter = moshi.adapter(Credentials::class.java)
     private val homeServerConnectionConfigAdapter = moshi.adapter(HomeServerConnectionConfig::class.java)
+
+    fun map(credentialsJson: String, homeServerConnectionConfigJson: String, isTokenValid: Boolean): SessionParams {
+        val credentials = credentialsAdapter.fromJson(credentialsJson)
+        val homeServerConnectionConfig = homeServerConnectionConfigAdapter.fromJson(homeServerConnectionConfigJson)
+        if (credentials == null || homeServerConnectionConfig == null) {
+            throw JsonDataException()
+        }
+        return SessionParams(credentials, homeServerConnectionConfig, isTokenValid)
+    }
 
     fun map(entity: SessionParamsEntity?): SessionParams? {
         if (entity == null) {

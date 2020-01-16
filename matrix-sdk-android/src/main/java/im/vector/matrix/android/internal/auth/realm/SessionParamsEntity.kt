@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package im.vector.matrix.android.internal.auth.db
+package im.vector.matrix.android.internal.auth.realm
 
 import io.realm.RealmObject
 import io.realm.annotations.PrimaryKey

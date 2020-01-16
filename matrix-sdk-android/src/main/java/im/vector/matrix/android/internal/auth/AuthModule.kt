@@ -17,16 +17,17 @@
 package im.vector.matrix.android.internal.auth
 
 import android.content.Context
+import com.squareup.sqldelight.android.AndroidSqliteDriver
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import im.vector.matrix.android.api.auth.AuthenticationService
-import im.vector.matrix.android.internal.auth.db.AuthRealmMigration
-import im.vector.matrix.android.internal.auth.db.AuthRealmModule
-import im.vector.matrix.android.internal.auth.db.RealmPendingSessionStore
-import im.vector.matrix.android.internal.auth.db.RealmSessionParamsStore
+import im.vector.matrix.android.internal.auth.realm.AuthRealmMigration
+import im.vector.matrix.android.internal.auth.realm.AuthRealmModule
+import im.vector.matrix.android.internal.auth.sqlite.SqlitePendingSessionStore
+import im.vector.matrix.android.internal.auth.sqlite.SqliteSessionParamsStore
 import im.vector.matrix.android.internal.database.RealmKeysUtils
-import im.vector.matrix.android.internal.di.AuthDatabase
+import im.vector.matrix.android.internal.db.auth.AuthDatabase
 import io.realm.RealmConfiguration
 import java.io.File
 
@@ -39,7 +40,7 @@ internal abstract class AuthModule {
 
         @JvmStatic
         @Provides
-        @AuthDatabase
+        @im.vector.matrix.android.internal.di.AuthDatabase
         fun providesRealmConfiguration(context: Context, realmKeysUtils: RealmKeysUtils): RealmConfiguration {
             val old = File(context.filesDir, "matrix-sdk-auth")
             if (old.exists()) {
@@ -56,13 +57,21 @@ internal abstract class AuthModule {
                     .migration(AuthRealmMigration)
                     .build()
         }
+
+        @JvmStatic
+        @Provides
+        fun providesAuthDatabase(context: Context): AuthDatabase {
+            val driver = AndroidSqliteDriver(AuthDatabase.Schema, context, "matrix-sdk-auth.db")
+            return AuthDatabase(driver)
+        }
+
     }
 
     @Binds
-    abstract fun bindSessionParamsStore(sessionParamsStore: RealmSessionParamsStore): SessionParamsStore
+    abstract fun bindSessionParamsStore(sessionParamsStore: SqliteSessionParamsStore): SessionParamsStore
 
     @Binds
-    abstract fun bindPendingSessionStore(pendingSessionStore: RealmPendingSessionStore): PendingSessionStore
+    abstract fun bindPendingSessionStore(pendingSessionStore: SqlitePendingSessionStore): PendingSessionStore
 
     @Binds
     abstract fun bindAuthenticationService(authenticationService: DefaultAuthenticationService): AuthenticationService

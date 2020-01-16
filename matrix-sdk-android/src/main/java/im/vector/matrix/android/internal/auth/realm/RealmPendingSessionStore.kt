@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package im.vector.matrix.android.internal.auth.db
+package im.vector.matrix.android.internal.auth.realm
 
 import im.vector.matrix.android.internal.auth.PendingSessionStore
+import im.vector.matrix.android.internal.auth.registration.PendingSessionData
 import im.vector.matrix.android.internal.database.awaitTransaction
 import im.vector.matrix.android.internal.di.AuthDatabase
 import io.realm.Realm

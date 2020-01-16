@@ -89,6 +89,20 @@ static def gitRevisionDate() {
     return cmd.execute().text.trim()
 }
 
+sqldelight {
+
+    AuthDatabase {
+        packageName = "im.vector.matrix.android.internal.db.auth"
+        sourceFolders = ["sqldelight/auth"]
+    }
+
+    CryptoDatabase {
+        packageName = "im.vector.matrix.android.internal.db.crypto"
+        sourceFolders = ["sqldelight/crypto"]
+    }
+
+}
+
 dependencies {
 
     def arrow_version = "0.8.2"

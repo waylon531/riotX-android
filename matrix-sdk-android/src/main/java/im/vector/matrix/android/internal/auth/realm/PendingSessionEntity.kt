@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package im.vector.matrix.android.internal.auth.db
+package im.vector.matrix.android.internal.auth.realm
 
-import io.realm.annotations.RealmModule
+import io.realm.RealmObject
 
-/**
- * Realm module for authentication classes
- */
-@RealmModule(library = true,
-        classes = [
-            SessionParamsEntity::class,
-            PendingSessionEntity::class
-        ])
-internal class AuthRealmModule
+internal open class PendingSessionEntity(
+        var homeServerConnectionConfigJson: String = "",
+        var clientSecret: String = "",
+        var sendAttempt: Int = 0,
+        var resetPasswordDataJson: String? = null,
+        var currentSession: String? = null,
+        var isRegistrationStarted: Boolean = false,
+        var currentThreePidDataJson: String? = null
+) : RealmObject()
