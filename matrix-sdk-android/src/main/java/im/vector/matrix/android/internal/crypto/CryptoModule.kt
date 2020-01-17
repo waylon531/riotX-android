@@ -29,7 +29,7 @@ import im.vector.matrix.android.internal.crypto.store.db.RealmCryptoStore
 import im.vector.matrix.android.internal.crypto.store.db.RealmCryptoStoreMigration
 import im.vector.matrix.android.internal.crypto.store.db.RealmCryptoStoreModule
 import im.vector.matrix.android.internal.crypto.tasks.*
-import im.vector.matrix.android.internal.database.RealmKeysUtils
+import im.vector.matrix.android.internal.database.DatabaseKeysUtils
 import im.vector.matrix.android.internal.di.CryptoDatabase
 import im.vector.matrix.android.internal.di.UserCacheDirectory
 import im.vector.matrix.android.internal.di.UserMd5
@@ -55,11 +55,11 @@ internal abstract class CryptoModule {
         @SessionScope
         fun providesRealmConfiguration(@UserCacheDirectory directory: File,
                                        @UserMd5 userMd5: String,
-                                       realmKeysUtils: RealmKeysUtils): RealmConfiguration {
+                                       databaseKeysUtils: DatabaseKeysUtils): RealmConfiguration {
             return RealmConfiguration.Builder()
                     .directory(directory)
                     .apply {
-                        realmKeysUtils.configureEncryption(this, getKeyAlias(userMd5))
+                        databaseKeysUtils.configureEncryption(this, getKeyAlias(userMd5))
                     }
                     .name("crypto_store.realm")
                     .modules(RealmCryptoStoreModule())

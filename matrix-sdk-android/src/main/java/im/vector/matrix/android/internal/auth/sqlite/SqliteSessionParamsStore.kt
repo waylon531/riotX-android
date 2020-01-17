@@ -54,7 +54,7 @@ internal class SqliteSessionParamsStore @Inject constructor(database: AuthDataba
     }
 
     override suspend fun setTokenInvalid(sessionId: String) {
-        sessionParamsQueries.setTokenInvalid(true, sessionId)
+        sessionParamsQueries.setTokenInvalid(sessionId)
     }
 
     override suspend fun updateCredentials(newCredentials: Credentials) {

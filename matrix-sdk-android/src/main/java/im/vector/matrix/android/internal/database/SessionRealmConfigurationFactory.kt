@@ -36,7 +36,7 @@ private const val REALM_NAME = "disk_store.realm"
  * It will handle corrupted realm by clearing the db file. It allows to just clear cache without losing your crypto keys.
  * It's clearly not perfect but there is no way to catch the native crash.
  */
-internal class SessionRealmConfigurationFactory @Inject constructor(private val realmKeysUtils: RealmKeysUtils,
+internal class SessionRealmConfigurationFactory @Inject constructor(private val databaseKeysUtils: DatabaseKeysUtils,
                                                                     @UserCacheDirectory val directory: File,
                                                                     @SessionId val sessionId: String,
                                                                     @UserMd5 val userMd5: String,
@@ -63,7 +63,7 @@ internal class SessionRealmConfigurationFactory @Inject constructor(private val 
                 .directory(directory)
                 .name(REALM_NAME)
                 .apply {
-                    realmKeysUtils.configureEncryption(this, SessionModule.getKeyAlias(userMd5))
+                    databaseKeysUtils.configureEncryption(this, SessionModule.getKeyAlias(userMd5))
                 }
                 .modules(SessionRealmModule())
                 .deleteRealmIfMigrationNeeded()

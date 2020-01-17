@@ -21,3 +21,7 @@ DELETE FROM pending_session;
 get:
 SELECT *
 FROM pending_session;
+
+getAll:
+SELECT *
+FROM pending_session.session_params;

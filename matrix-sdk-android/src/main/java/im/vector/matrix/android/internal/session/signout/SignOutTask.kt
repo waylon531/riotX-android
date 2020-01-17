@@ -23,7 +23,7 @@ import im.vector.matrix.android.api.failure.MatrixError
 import im.vector.matrix.android.internal.SessionManager
 import im.vector.matrix.android.internal.auth.SessionParamsStore
 import im.vector.matrix.android.internal.crypto.CryptoModule
-import im.vector.matrix.android.internal.database.RealmKeysUtils
+import im.vector.matrix.android.internal.database.DatabaseKeysUtils
 import im.vector.matrix.android.internal.di.*
 import im.vector.matrix.android.internal.network.executeRequest
 import im.vector.matrix.android.internal.session.SessionModule
@@ -53,7 +53,7 @@ internal class DefaultSignOutTask @Inject constructor(
         @SessionDatabase private val clearSessionDataTask: ClearCacheTask,
         @CryptoDatabase private val clearCryptoDataTask: ClearCacheTask,
         @UserCacheDirectory private val userFile: File,
-        private val realmKeysUtils: RealmKeysUtils,
+        private val databaseKeysUtils: DatabaseKeysUtils,
         @SessionDatabase private val realmSessionConfiguration: RealmConfiguration,
         @CryptoDatabase private val realmCryptoConfiguration: RealmConfiguration,
         @UserMd5 private val userMd5: String,
@@ -101,8 +101,8 @@ internal class DefaultSignOutTask @Inject constructor(
         userFile.deleteRecursively()
 
         Timber.d("SignOut: clear the database keys")
-        realmKeysUtils.clear(SessionModule.getKeyAlias(userMd5))
-        realmKeysUtils.clear(CryptoModule.getKeyAlias(userMd5))
+        databaseKeysUtils.clear(SessionModule.getKeyAlias(userMd5))
+        databaseKeysUtils.clear(CryptoModule.getKeyAlias(userMd5))
 
         // Sanity check
         if (BuildConfig.DEBUG) {

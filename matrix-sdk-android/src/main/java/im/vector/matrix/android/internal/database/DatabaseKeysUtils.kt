@@ -17,9 +17,11 @@ package im.vector.matrix.android.internal.database
 
 import android.content.Context
 import android.util.Base64
+import androidx.sqlite.db.SupportSQLiteOpenHelper
 import im.vector.matrix.android.BuildConfig
 import im.vector.matrix.android.internal.session.securestorage.SecretStoringUtils
 import io.realm.RealmConfiguration
+import net.sqlcipher.database.SupportFactory
 import timber.log.Timber
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -36,8 +38,8 @@ import javax.inject.Inject
  * then we generate a random secret key. The database key is encrypted with the secret key; The secret
  * key is encrypted with the public RSA key and stored with the encrypted key in the shared pref
  */
-internal class RealmKeysUtils @Inject constructor(context: Context,
-                                                  private val secretStoringUtils: SecretStoringUtils) {
+internal class DatabaseKeysUtils @Inject constructor(context: Context,
+                                                     private val secretStoringUtils: SecretStoringUtils) {
 
     private val rng = SecureRandom()
 
@@ -85,7 +87,7 @@ internal class RealmKeysUtils @Inject constructor(context: Context,
         return Base64.decode(b64!!, Base64.NO_PADDING)
     }
 
-    fun configureEncryption(realmConfigurationBuilder: RealmConfiguration.Builder, alias: String) {
+    private fun getOrCreateEncryptionKey(alias: String): ByteArray {
         val key = if (hasKeyForDatabase(alias)) {
             Timber.i("Found key for alias:$alias")
             extractKeyForDatabase(alias)
@@ -98,7 +100,16 @@ internal class RealmKeysUtils @Inject constructor(context: Context,
             val log = key.joinToString("") { "%02x".format(it) }
             Timber.w("Database key for alias `$alias`: $log")
         }
+        return key
+    }
 
+    fun createEncryptedSQLiteOpenHelperFactory(alias: String): SupportSQLiteOpenHelper.Factory {
+        val key = getOrCreateEncryptionKey(alias)
+        return SupportFactory(key)
+    }
+
+    fun configureEncryption(realmConfigurationBuilder: RealmConfiguration.Builder, alias: String) {
+        val key = getOrCreateEncryptionKey(alias)
         realmConfigurationBuilder.encryptionKey(key)
     }
 

@@ -32,12 +32,11 @@ WHERE session_id = ?;
 
 setTokenInvalid:
 UPDATE session_params
-SET is_token_valid = ?
+SET is_token_valid = 0
 WHERE session_id = ?;
 
 updateCredentials:
 UPDATE session_params
 SET credentials_json = ?,
        is_token_valid = 1
-
 WHERE session_id = ?;
