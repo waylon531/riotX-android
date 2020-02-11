@@ -36,6 +36,9 @@ import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
 import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.riotx.R
 import im.vector.riotx.features.popup.PopupAlertManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -100,45 +103,28 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
         alertsToRequests[mappingKey] = ArrayList<IncomingRoomKeyRequest>().apply { this.add(request) }
 
         // Add a notification for every incoming request
-        session?.downloadKeys(listOf(userId), false, object : MatrixCallback<MXUsersDevicesMap<CryptoDeviceInfo>> {
-            override fun onSuccess(data: MXUsersDevicesMap<CryptoDeviceInfo>) {
-                val deviceInfo = data.getObject(userId, deviceId)
-
-                if (null == deviceInfo) {
-                    Timber.e("## displayKeyShareDialog() : No details found for device $userId:$deviceId")
-                    // ignore
-                    return
-                }
-
-                if (deviceInfo.isUnknown) {
-                    session?.setDeviceVerification(DeviceTrustLevel(false, false), userId, deviceId)
-
-                    deviceInfo.trustLevel = DeviceTrustLevel(false, false)
-
-                    // can we get more info on this device?
-                    session?.getDevicesList(object : MatrixCallback<DevicesListResponse> {
-                        override fun onSuccess(data: DevicesListResponse) {
-                            data.devices?.find { it.deviceId == deviceId }?.let {
-                                postAlert(context, userId, deviceId, true, deviceInfo, it)
-                            } ?: run {
-                                postAlert(context, userId, deviceId, true, deviceInfo)
-                            }
-                        }
-
-                        override fun onFailure(failure: Throwable) {
-                            postAlert(context, userId, deviceId, true, deviceInfo)
-                        }
-                    })
-                } else {
-                    postAlert(context, userId, deviceId, false, deviceInfo)
-                }
-            }
-
-            override fun onFailure(failure: Throwable) {
+        GlobalScope.launch(Dispatchers.Main) {
+            val result = session?.downloadKeys(listOf(userId), false)
+            val deviceInfo = result?.getObject(userId, deviceId)
+            if (null == deviceInfo) {
+                Timber.e("## displayKeyShareDialog() : No details found for device $userId:$deviceId")
                 // ignore
-                Timber.e(failure, "## displayKeyShareDialog : downloadKeys")
+                return@launch
             }
-        })
+            if (deviceInfo.isUnknown) {
+                session?.setDeviceVerification(DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false), userId, deviceId)
+                deviceInfo.trustLevel = DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false)
+                // can we get more info on this device?
+                val deviceList = session?.getDevicesList()
+                deviceList?.find { it.deviceId == deviceId }?.let {
+                    postAlert(context, userId, deviceId, true, deviceInfo, it)
+                } ?: run {
+                    postAlert(context, userId, deviceId, true, deviceInfo)
+                }
+            } else {
+                postAlert(context, userId, deviceId, false, deviceInfo)
+            }
+        }
     }
 
     private fun postAlert(context: Context,

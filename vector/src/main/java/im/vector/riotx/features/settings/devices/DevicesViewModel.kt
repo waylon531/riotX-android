@@ -16,6 +16,7 @@
 
 package im.vector.riotx.features.settings.devices
 
+import androidx.lifecycle.viewModelScope
 import com.airbnb.mvrx.Async
 import com.airbnb.mvrx.Fail
 import com.airbnb.mvrx.FragmentViewModelContext
@@ -41,6 +42,8 @@ import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.matrix.rx.rx
 import im.vector.riotx.core.platform.VectorViewModel
 import im.vector.riotx.features.crypto.verification.supportedVerificationMethods
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 data class DevicesViewState(
         val myDeviceId: String = "",
@@ -111,51 +114,30 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
                         displayName = it.displayName()
                 )
             }
-
-            setState {
-                copy(
-                        // Keep known list if we have it, and let refresh go in backgroung
-                        devices = this.devices.takeIf { it is Success } ?: Success(localKnown)
-                )
-            }
-
-            session.getDevicesList(object : MatrixCallback<DevicesListResponse> {
-                override fun onSuccess(data: DevicesListResponse) {
-                    setState {
-                        copy(
-                                myDeviceId = session.sessionParams.credentials.deviceId ?: "",
-                                devices = Success(data.devices.orEmpty())
-                        )
-                    }
-                }
-
-                override fun onFailure(failure: Throwable) {
-                    setState {
-                        copy(
-                                devices = Fail(failure)
-                        )
-                    }
-                }
-            })
-
-            // Put cached state
             setState {
                 copy(
                         myDeviceId = session.sessionParams.credentials.deviceId ?: "",
+                        // Keep known list if we have it, and let refresh go in backgroung
+                        devices = this.devices.takeIf { it is Success } ?: Success(localKnown),
                         cryptoDevices = Success(session.getUserDevices(session.myUserId))
                 )
             }
-
-            // then force download
-            session.downloadKeys(listOf(session.myUserId), true, object : MatrixCallback<MXUsersDevicesMap<CryptoDeviceInfo>> {
-                override fun onSuccess(data: MXUsersDevicesMap<CryptoDeviceInfo>) {
-                    setState {
-                        copy(
-                                cryptoDevices = Success(session.getUserDevices(session.myUserId))
-                        )
-                    }
+            viewModelScope.launch {
+                val deviceList = session.getDevicesList()
+                setState {
+                    copy(devices = Success(deviceList))
                 }
-            })
+                try {
+                    session.downloadKeys(listOf(session.myUserId), true)
+                } catch (failure: Throwable) {
+                    Timber.v("Failure downloading keys")
+                }
+                setState {
+                    copy(
+                            cryptoDevices = Success(session.getUserDevices(session.myUserId))
+                    )
+                }
+            }
         } else {
             // Should not happen
         }
@@ -188,27 +170,20 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     }
 
     private fun handleRename(action: DevicesAction.Rename) {
-        session.setDeviceName(action.deviceId, action.newName, object : MatrixCallback<Unit> {
-            override fun onSuccess(data: Unit) {
+        viewModelScope.launch {
+            try {
+                session.setDeviceName(action.deviceId, action.newName)
                 setState {
-                    copy(
-                            request = Success(data)
-                    )
+                    copy(request = Success(Unit))
                 }
-                // force settings update
                 refreshDevicesList()
-            }
-
-            override fun onFailure(failure: Throwable) {
+            } catch (failure: Throwable) {
                 setState {
-                    copy(
-                            request = Fail(failure)
-                    )
+                    copy(request = Fail(failure))
                 }
-
                 _viewEvents.post(DevicesViewEvents.Failure(failure))
             }
-        })
+        }
     }
 
     /**
@@ -216,60 +191,41 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
      */
     private fun handleDelete(action: DevicesAction.Delete) {
         val deviceId = action.deviceId
-
-        setState {
-            copy(
-                    request = Loading()
-            )
-        }
-
-        session.deleteDevice(deviceId, object : MatrixCallback<Unit> {
-            override fun onFailure(failure: Throwable) {
+        setState { copy(request = Loading()) }
+        viewModelScope.launch {
+            try {
+                session.deleteDevice(deviceId)
+                setState {
+                    copy(request = Success(Unit))
+                }
+                // force settings update
+                refreshDevicesList()
+            } catch (failure: Throwable) {
                 var isPasswordRequestFound = false
-
                 if (failure is Failure.RegistrationFlowError) {
                     // We only support LoginFlowTypes.PASSWORD
                     // Check if we can provide the user password
                     failure.registrationFlowResponse.flows?.forEach { interactiveAuthenticationFlow ->
                         isPasswordRequestFound = isPasswordRequestFound || interactiveAuthenticationFlow.stages?.any { it == LoginFlowTypes.PASSWORD } == true
                     }
-
                     if (isPasswordRequestFound) {
                         _currentDeviceId = deviceId
                         _currentSession = failure.registrationFlowResponse.session
-
                         setState {
-                            copy(
-                                    request = Success(Unit)
-                            )
+                            copy(request = Success(Unit))
                         }
-
                         _viewEvents.post(DevicesViewEvents.RequestPassword)
                     }
                 }
-
                 if (!isPasswordRequestFound) {
                     // LoginFlowTypes.PASSWORD not supported, and this is the only one RiotX supports so far...
                     setState {
-                        copy(
-                                request = Fail(failure)
-                        )
+                        copy(request = Fail(failure))
                     }
-
                     _viewEvents.post(DevicesViewEvents.Failure(failure))
                 }
             }
-
-            override fun onSuccess(data: Unit) {
-                setState {
-                    copy(
-                            request = Success(data)
-                    )
-                }
-                // force settings update
-                refreshDevicesList()
-            }
-        })
+        }
     }
 
     private fun handlePassword(action: DevicesAction.Password) {
@@ -278,40 +234,26 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
             // Abort
             return
         }
-
-        setState {
-            copy(
-                    request = Loading()
-            )
-        }
-
-        session.deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password, object : MatrixCallback<Unit> {
-            override fun onSuccess(data: Unit) {
+        setState { copy(request = Loading()) }
+        viewModelScope.launch {
+            try {
+                session.deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password)
                 _currentDeviceId = null
                 _currentSession = null
-
                 setState {
-                    copy(
-                            request = Success(data)
-                    )
+                    copy(request = Success(Unit))
                 }
                 // force settings update
                 refreshDevicesList()
-            }
-
-            override fun onFailure(failure: Throwable) {
+            } catch (failure: Throwable) {
                 _currentDeviceId = null
                 _currentSession = null
-
                 // Password is maybe not good
                 setState {
-                    copy(
-                            request = Fail(failure)
-                    )
+                    copy(request = Fail(failure))
                 }
-
                 _viewEvents.post(DevicesViewEvents.Failure(failure))
             }
-        })
+        }
     }
 }

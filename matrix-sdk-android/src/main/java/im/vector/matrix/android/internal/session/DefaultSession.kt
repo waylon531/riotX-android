@@ -47,7 +47,6 @@ import im.vector.matrix.android.internal.crypto.crosssigning.ShieldTrustUpdater
 import im.vector.matrix.android.internal.database.LiveEntityObserver
 import im.vector.matrix.android.internal.di.SessionId
 import im.vector.matrix.android.internal.di.WorkManagerProvider
-import im.vector.matrix.android.internal.session.sync.SyncTaskSequencer
 import im.vector.matrix.android.internal.session.sync.SyncTokenStore
 import im.vector.matrix.android.internal.session.sync.job.SyncThread
 import im.vector.matrix.android.internal.session.sync.job.SyncWorker
@@ -86,7 +85,6 @@ internal class DefaultSession @Inject constructor(
         private val syncThreadProvider: Provider<SyncThread>,
         private val contentUrlResolver: ContentUrlResolver,
         private val syncTokenStore: SyncTokenStore,
-        private val syncTaskSequencer: SyncTaskSequencer,
         private val sessionParamsStore: SessionParamsStore,
         private val contentUploadProgressTracker: ContentUploadStateTracker,
         private val initialSyncProgressService: Lazy<InitialSyncProgressService>,
@@ -162,7 +160,6 @@ internal class DefaultSession @Inject constructor(
         cryptoService.get().close()
         isOpen = false
         eventBus.unregister(this)
-        syncTaskSequencer.close()
         shieldTrustUpdater.stop()
     }
 

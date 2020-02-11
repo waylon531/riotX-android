@@ -22,7 +22,6 @@ import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.internal.crypto.model.ImportRoomKeysResult
 import im.vector.matrix.android.internal.extensions.foldToCallback
-import im.vector.matrix.android.internal.util.awaitCallback
 import im.vector.riotx.core.intent.getMimeTypeFromUri
 import im.vector.riotx.core.resources.openResource
 import kotlinx.coroutines.Dispatchers
@@ -57,10 +56,7 @@ class KeysImporter(private val session: Session) {
                         Timber.e(e, "## importKeys()")
                         throw e
                     }
-
-                    awaitCallback<ImportRoomKeysResult> {
-                        session.importRoomKeys(data, password, null, it)
-                    }
+                    session.importRoomKeys(data, password, null)
                 }
             }.foldToCallback(callback)
         }

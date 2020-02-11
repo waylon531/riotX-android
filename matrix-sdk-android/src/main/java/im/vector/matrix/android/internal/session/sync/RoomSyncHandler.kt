@@ -70,7 +70,7 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
         data class LEFT(val data: Map<String, RoomSync>) : HandlingStrategy()
     }
 
-    fun handle(
+    suspend fun handle(
             realm: Realm,
             roomsSyncResponse: RoomsSyncResponse,
             isInitialSync: Boolean,
@@ -84,7 +84,7 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
 
     // PRIVATE METHODS *****************************************************************************
 
-    private fun handleRoomSync(realm: Realm, handlingStrategy: HandlingStrategy, isInitialSync: Boolean, reporter: DefaultInitialSyncProgressService?) {
+    private suspend fun handleRoomSync(realm: Realm, handlingStrategy: HandlingStrategy, isInitialSync: Boolean, reporter: DefaultInitialSyncProgressService?) {
         val syncLocalTimeStampMillis = System.currentTimeMillis()
         val rooms = when (handlingStrategy) {
             is HandlingStrategy.JOINED  ->
@@ -105,7 +105,7 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
         realm.insertOrUpdate(rooms)
     }
 
-    private fun handleJoinedRoom(realm: Realm,
+    private suspend fun handleJoinedRoom(realm: Realm,
                                  roomId: String,
                                  roomSync: RoomSync,
                                  isInitialSync: Boolean,
@@ -175,7 +175,7 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
         return roomEntity
     }
 
-    private fun handleInvitedRoom(realm: Realm,
+    private suspend fun handleInvitedRoom(realm: Realm,
                                   roomId: String,
                                   roomSync: InvitedRoomSync,
                                   syncLocalTimestampMillis: Long): RoomEntity {
@@ -193,7 +193,7 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
         return roomEntity
     }
 
-    private fun handleLeftRoom(realm: Realm,
+    private suspend fun handleLeftRoom(realm: Realm,
                                roomId: String,
                                roomSync: RoomSync): RoomEntity {
         val roomEntity = RoomEntity.where(realm, roomId).findFirst() ?: realm.createObject(roomId)

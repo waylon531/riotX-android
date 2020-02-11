@@ -24,9 +24,11 @@ import im.vector.matrix.android.api.session.room.model.Membership
 import im.vector.matrix.android.api.session.room.model.RoomAliasesContent
 import im.vector.matrix.android.api.session.room.model.RoomCanonicalAliasContent
 import im.vector.matrix.android.api.session.room.model.RoomTopicContent
+import im.vector.matrix.android.internal.crypto.DecryptEventTask
 import im.vector.matrix.android.internal.crypto.MXCRYPTO_ALGORITHM_MEGOLM
 import im.vector.matrix.android.internal.crypto.crosssigning.SessionToCryptoRoomMembersUpdate
 import im.vector.matrix.android.internal.database.mapper.ContentMapper
+import im.vector.matrix.android.internal.database.mapper.asDomain
 import im.vector.matrix.android.internal.database.model.CurrentStateEventEntity
 import im.vector.matrix.android.internal.database.model.EventEntity
 import im.vector.matrix.android.internal.database.model.EventEntityFields
@@ -46,12 +48,15 @@ import im.vector.matrix.android.internal.session.sync.model.RoomSyncSummary
 import im.vector.matrix.android.internal.session.sync.model.RoomSyncUnreadNotifications
 import io.realm.Realm
 import org.greenrobot.eventbus.EventBus
+import timber.log.Timber
+import java.util.UUID
 import javax.inject.Inject
 
 internal class RoomSummaryUpdater @Inject constructor(
         @UserId private val userId: String,
         private val roomDisplayNameResolver: RoomDisplayNameResolver,
         private val roomAvatarResolver: RoomAvatarResolver,
+        private val decryptEventTask: DecryptEventTask,
         private val eventBus: EventBus,
         private val monarchy: Monarchy) {
 
@@ -75,13 +80,13 @@ internal class RoomSummaryUpdater @Inject constructor(
         )
     }
 
-    fun update(realm: Realm,
-               roomId: String,
-               membership: Membership? = null,
-               roomSummary: RoomSyncSummary? = null,
-               unreadNotifications: RoomSyncUnreadNotifications? = null,
-               updateMembers: Boolean = false,
-               ephemeralResult: RoomSyncHandler.EphemeralResult? = null) {
+    suspend fun update(realm: Realm,
+                       roomId: String,
+                       membership: Membership? = null,
+                       roomSummary: RoomSyncSummary? = null,
+                       unreadNotifications: RoomSyncUnreadNotifications? = null,
+                       updateMembers: Boolean = false,
+                       ephemeralResult: RoomSyncHandler.EphemeralResult? = null) {
         val roomSummaryEntity = RoomSummaryEntity.getOrCreate(realm, roomId)
         if (roomSummary != null) {
             if (roomSummary.heroes.isNotEmpty()) {
@@ -103,7 +108,16 @@ internal class RoomSummaryUpdater @Inject constructor(
         }
 
         val latestPreviewableEvent = TimelineEventEntity.latestEvent(realm, roomId, includesSending = true, filterTypes = PREVIEWABLE_TYPES)
-
+        val rootEventEntity = latestPreviewableEvent?.root
+        val rootEvent = rootEventEntity?.asDomain()
+        if (rootEvent != null && rootEvent.isEncrypted() && rootEvent.mxDecryptionResult == null) {
+            try {
+                val result = decryptEventTask.decryptEvent(rootEvent, rootEvent.roomId + UUID.randomUUID().toString())
+                rootEventEntity.setDecryptionResult(result)
+            } catch (e: Throwable) {
+                Timber.d(e)
+            }
+        }
         val lastTopicEvent = CurrentStateEventEntity.getOrNull(realm, roomId, type = EventType.STATE_ROOM_TOPIC, stateKey = "")?.root
         val lastCanonicalAliasEvent = CurrentStateEventEntity.getOrNull(realm, roomId, type = EventType.STATE_ROOM_CANONICAL_ALIAS, stateKey = "")?.root
         val lastAliasesEvent = CurrentStateEventEntity.getOrNull(realm, roomId, type = EventType.STATE_ROOM_ALIASES, stateKey = "")?.root

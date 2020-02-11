@@ -15,6 +15,7 @@
  */
 package im.vector.riotx.features.settings.devices
 
+import androidx.lifecycle.viewModelScope
 import com.airbnb.mvrx.Async
 import com.airbnb.mvrx.Fail
 import com.airbnb.mvrx.FragmentViewModelContext
@@ -34,6 +35,7 @@ import im.vector.matrix.rx.rx
 import im.vector.riotx.core.platform.EmptyAction
 import im.vector.riotx.core.platform.EmptyViewEvents
 import im.vector.riotx.core.platform.VectorViewModel
+import kotlinx.coroutines.launch
 
 data class DeviceVerificationInfoBottomSheetViewState(
         val cryptoDeviceInfo: Async<CryptoDeviceInfo?> = Uninitialized,
@@ -56,26 +58,23 @@ class DeviceVerificationInfoBottomSheetViewModel @AssistedInject constructor(@As
                     list.firstOrNull { it.deviceId == deviceId }
                 }
                 .execute {
-                    copy(
-                            cryptoDeviceInfo = it
-                    )
+                    copy(cryptoDeviceInfo = it)
                 }
         setState {
             copy(deviceInfo = Loading())
         }
-        session.getDeviceInfo(deviceId, object : MatrixCallback<DeviceInfo> {
-            override fun onSuccess(data: DeviceInfo) {
+        viewModelScope.launch {
+            try {
+                val deviceInfo = session.getDeviceInfo(deviceId)
                 setState {
-                    copy(deviceInfo = Success(data))
+                    copy(deviceInfo = Success(deviceInfo))
                 }
-            }
-
-            override fun onFailure(failure: Throwable) {
+            } catch (failure: Throwable) {
                 setState {
                     copy(deviceInfo = Fail(failure))
                 }
             }
-        })
+        }
     }
 
     companion object : MvRxViewModelFactory<DeviceVerificationInfoBottomSheetViewModel, DeviceVerificationInfoBottomSheetViewState> {

@@ -27,6 +27,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.internal.crypto.model.CryptoDeviceInfo
@@ -47,6 +48,8 @@ import im.vector.riotx.features.workers.signout.SignOutViewModel
 import im.vector.riotx.push.fcm.FcmHelper
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.merge_overlay_waiting_view.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -130,13 +133,15 @@ class HomeActivity : VectorBaseActivity(), ToolbarConfigurable {
         if (sharedActionViewModel.hasDisplayedCompleteSecurityPrompt) return
 
         // ensure keys are downloaded
-        session.downloadKeys(listOf(session.myUserId), true, object : MatrixCallback<MXUsersDevicesMap<CryptoDeviceInfo>> {
-            override fun onSuccess(data: MXUsersDevicesMap<CryptoDeviceInfo>) {
-                runOnUiThread {
-                    alertCompleteSecurity(session)
-                }
+        lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                session.downloadKeys(listOf(session.myUserId), true)
+                alertCompleteSecurity(session)
+            } catch (failure: Throwable) {
+
             }
-        })
+
+        }
     }
 
     private fun alertCompleteSecurity(session: Session) {

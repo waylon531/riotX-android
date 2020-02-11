@@ -24,9 +24,7 @@ import im.vector.matrix.android.internal.util.MatrixCoroutineDispatchers
 import im.vector.matrix.android.internal.util.createBackgroundHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.asCoroutineDispatcher
 import org.matrix.olm.OlmManager
-import java.util.concurrent.Executors
 
 @Module
 internal object MatrixModule {
@@ -38,8 +36,7 @@ internal object MatrixModule {
         return MatrixCoroutineDispatchers(io = Dispatchers.IO,
                 computation = Dispatchers.Default,
                 main = Dispatchers.Main,
-                crypto = createBackgroundHandler("Crypto_Thread").asCoroutineDispatcher(),
-                dmVerif = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+                crypto = createBackgroundHandler("Crypto_Thread").asCoroutineDispatcher()
         )
     }
 

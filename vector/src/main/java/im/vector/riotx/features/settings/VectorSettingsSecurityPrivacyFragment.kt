@@ -24,6 +24,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreference
@@ -32,7 +33,6 @@ import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.internal.crypto.crosssigning.isVerified
 import im.vector.matrix.android.internal.crypto.model.ImportRoomKeysResult
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
-import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.riotx.R
 import im.vector.riotx.core.dialogs.ExportKeysDialog
 import im.vector.riotx.core.intent.ExternalIntentData
@@ -49,6 +49,9 @@ import im.vector.riotx.core.utils.toast
 import im.vector.riotx.features.crypto.keys.KeysExporter
 import im.vector.riotx.features.crypto.keys.KeysImporter
 import im.vector.riotx.features.crypto.keysbackup.settings.KeysBackupManageActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class VectorSettingsSecurityPrivacyFragment @Inject constructor(
@@ -436,19 +439,12 @@ class VectorSettingsSecurityPrivacyFragment @Inject constructor(
             refreshCryptographyPreference(it)
         }
         // TODO Move to a ViewModel...
-        session.getDevicesList(object : MatrixCallback<DevicesListResponse> {
-            override fun onSuccess(data: DevicesListResponse) {
-                if (isAdded) {
-                    refreshCryptographyPreference(data.devices ?: emptyList())
-                }
+        lifecycleScope.launch(Dispatchers.Main) {
+            val deviceList = session.getDevicesList()
+            if (isAdded) {
+                refreshCryptographyPreference(deviceList)
             }
-
-            override fun onFailure(failure: Throwable) {
-                if (isAdded) {
-                    refreshCryptographyPreference(emptyList())
-                }
-            }
-        })
+        }
     }
 
     // ==============================================================================================================

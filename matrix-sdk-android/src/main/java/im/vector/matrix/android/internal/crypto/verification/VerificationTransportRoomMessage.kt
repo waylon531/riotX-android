@@ -65,7 +65,6 @@ internal class VerificationTransportRoomMessage(
         private val userId: String,
         private val userDeviceId: String?,
         private val roomId: String,
-        private val monarchy: Monarchy,
         private val localEchoEventFactory: LocalEchoEventFactory,
         private val tx: DefaultVerificationTransaction?
 ) : VerificationTransport {
@@ -347,7 +346,6 @@ internal class VerificationTransportRoomMessage(
 internal class VerificationTransportRoomMessageFactory @Inject constructor(
         private val workManagerProvider: WorkManagerProvider,
         private val stringProvider: StringProvider,
-        private val monarchy: Monarchy,
         @SessionId
         private val sessionId: String,
         @UserId
@@ -357,6 +355,6 @@ internal class VerificationTransportRoomMessageFactory @Inject constructor(
         private val localEchoEventFactory: LocalEchoEventFactory) {
 
     fun createTransport(roomId: String, tx: DefaultVerificationTransaction?): VerificationTransportRoomMessage {
-        return VerificationTransportRoomMessage(workManagerProvider, stringProvider, sessionId, userId, deviceId, roomId, monarchy, localEchoEventFactory, tx)
+        return VerificationTransportRoomMessage(workManagerProvider, stringProvider, sessionId, userId, deviceId, roomId, localEchoEventFactory, tx)
     }
 }

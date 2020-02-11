@@ -75,20 +75,9 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
         params.keepKeys?.forEach {
             localMutableContent.remove(it)
         }
-
-        crypto.downloadKeys(listOf("@testxsigningvfe:matrix.org"), true, object : MatrixCallback<Any> {
-        })
-
-        var error: Throwable? = null
-        var result: MXEncryptEventContentResult? = null
-        try {
-            result = awaitCallback {
-                crypto.encryptEventContent(localMutableContent, localEvent.type, params.roomId, it)
-            }
-        } catch (throwable: Throwable) {
-            error = throwable
-        }
-        if (result != null) {
+        return try {
+            crypto.downloadKeys(listOf("@testxsigningvfe:matrix.org"), true)
+            val result = crypto.encryptEventContent(localMutableContent, localEvent.type, params.roomId)
             val modifiedContent = HashMap(result.eventContent)
             params.keepKeys?.forEach { toKeep ->
                 localEvent.content?.get(toKeep)?.let {
@@ -102,17 +91,16 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
                     content = safeResult.eventContent
             )
             val nextWorkerParams = SendEventWorker.Params(params.sessionId, params.roomId, encryptedEvent)
-            return Result.success(WorkerParamsFactory.toData(nextWorkerParams))
-        } else {
-            val sendState = when (error) {
+            Result.success(WorkerParamsFactory.toData(nextWorkerParams))
+        } catch (throwable: Throwable) {
+            val sendState = when (throwable) {
                 is Failure.CryptoError -> SendState.FAILED_UNKNOWN_DEVICES
                 else                   -> SendState.UNDELIVERED
             }
             localEchoUpdater.updateSendState(localEvent.eventId, sendState)
             // always return success, or the chain will be stuck for ever!
-            val nextWorkerParams = SendEventWorker.Params(params.sessionId, params.roomId, localEvent, error?.localizedMessage
-                    ?: "Error")
-            return Result.success(WorkerParamsFactory.toData(nextWorkerParams))
+            val nextWorkerParams = SendEventWorker.Params(params.sessionId, params.roomId, localEvent, throwable.localizedMessage ?: "Error")
+            Result.success(WorkerParamsFactory.toData(nextWorkerParams))
         }
     }
 }

@@ -51,23 +51,20 @@ internal class DefaultEncryptEventTask @Inject constructor(
             localMutableContent.remove(it)
         }
 
-//        try {
-        awaitCallback<MXEncryptEventContentResult> {
-            params.crypto.encryptEventContent(localMutableContent, localEvent.type, params.roomId, it)
-        }.let { result ->
-            val modifiedContent = HashMap(result.eventContent)
-            params.keepKeys?.forEach { toKeep ->
-                localEvent.content?.get(toKeep)?.let {
-                    // put it back in the encrypted thing
-                    modifiedContent[toKeep] = it
-                }
+        val result = params.crypto.encryptEventContent(localMutableContent, localEvent.type, params.roomId)
+        val modifiedContent = HashMap(result.eventContent)
+        params.keepKeys?.forEach { toKeep ->
+            localEvent.content?.get(toKeep)?.let {
+                // put it back in the encrypted thing
+                modifiedContent[toKeep] = it
             }
-            val safeResult = result.copy(eventContent = modifiedContent)
-            return localEvent.copy(
-                    type = safeResult.eventType,
-                    content = safeResult.eventContent
-            )
         }
+        val safeResult = result.copy(eventContent = modifiedContent)
+        return localEvent.copy(
+                type = safeResult.eventType,
+                content = safeResult.eventContent
+        )
+    }
 //        } catch (throwable: Throwable) {
 //            val sendState = when (throwable) {
 //                is Failure.CryptoError -> SendState.FAILED_UNKNOWN_DEVICES
@@ -76,5 +73,4 @@ internal class DefaultEncryptEventTask @Inject constructor(
 //            localEchoUpdater.updateSendState(localEvent.eventId, sendState)
 //            throw throwable
 //        }
-    }
 }
