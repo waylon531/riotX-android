@@ -41,10 +41,14 @@ import im.vector.matrix.android.internal.task.configureWith
 import im.vector.matrix.android.internal.util.JsonCanonicalizer
 import im.vector.matrix.android.internal.util.MatrixCoroutineDispatchers
 import im.vector.matrix.android.internal.util.withoutPrefix
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.matrix.olm.OlmPkSigning
 import org.matrix.olm.OlmUtility
 import timber.log.Timber
+import java.util.concurrent.Executors
 import javax.inject.Inject
 
 @SessionScope
@@ -56,9 +60,9 @@ internal class DefaultCrossSigningService @Inject constructor(
         private val deviceListManager: DeviceListManager,
         private val uploadSigningKeysTask: UploadSigningKeysTask,
         private val uploadSignaturesTask: UploadSignaturesTask,
-        private val computeTrustTask: ComputeTrustTask,
         private val taskExecutor: TaskExecutor,
-        private val cryptoSequencer: CryptoSequencer,
+        private val cryptoScope: CoroutineScope,
+        private val coroutineDispatchers: MatrixCoroutineDispatchers,
         private val eventBus: EventBus) : CrossSigningService, DeviceListManager.UserDevicesUpdateListener {
 
     private var olmUtility: OlmUtility? = null
@@ -614,7 +618,7 @@ internal class DefaultCrossSigningService @Inject constructor(
     }
 
     override fun onUsersDeviceUpdate(userIds: List<String>) {
-        cryptoSequencer.launch {
+        cryptoScope.launch(coroutineDispatchers.crypto) {
             Timber.d("## CrossSigning - onUsersDeviceUpdate for ${userIds.size} users")
             userIds.forEach { otherUserId ->
                 checkUserTrust(otherUserId).let {
@@ -642,7 +646,7 @@ internal class DefaultCrossSigningService @Inject constructor(
     }
 
     private fun setUserKeysAsTrusted(otherUserId: String, trusted: Boolean) {
-        cryptoSequencer.launch {
+        cryptoScope.launch(coroutineDispatchers.crypto) {
             val currentTrust = cryptoStore.getCrossSigningInfo(otherUserId)?.isTrusted()
             cryptoStore.setUserKeysAsTrusted(otherUserId, trusted)
             // If it's me, recheck trust of all users and devices?

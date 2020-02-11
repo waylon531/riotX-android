@@ -25,8 +25,6 @@ import androidx.lifecycle.LiveData
 import com.squareup.moshi.Types
 import com.zhuinden.monarchy.Monarchy
 import dagger.Lazy
-import im.vector.matrix.android.api.MatrixCallback
-import im.vector.matrix.android.api.NoOpMatrixCallback
 import im.vector.matrix.android.api.auth.data.Credentials
 import im.vector.matrix.android.api.crypto.MXCryptoConfig
 import im.vector.matrix.android.api.failure.Failure
@@ -57,7 +55,6 @@ import im.vector.matrix.android.internal.crypto.model.MXEncryptEventContentResul
 import im.vector.matrix.android.internal.crypto.model.MXUsersDevicesMap
 import im.vector.matrix.android.internal.crypto.model.event.RoomKeyContent
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
-import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.matrix.android.internal.crypto.model.rest.KeysUploadResponse
 import im.vector.matrix.android.internal.crypto.model.rest.RoomKeyRequestBody
 import im.vector.matrix.android.internal.crypto.model.toRest
@@ -74,12 +71,10 @@ import im.vector.matrix.android.internal.database.model.EventEntity
 import im.vector.matrix.android.internal.database.model.EventEntityFields
 import im.vector.matrix.android.internal.database.query.whereType
 import im.vector.matrix.android.internal.di.MoshiProvider
-import im.vector.matrix.android.internal.extensions.foldToCallback
 import im.vector.matrix.android.internal.session.SessionScope
 import im.vector.matrix.android.internal.session.room.membership.LoadRoomMembersTask
 import im.vector.matrix.android.internal.session.room.membership.RoomMemberHelper
 import im.vector.matrix.android.internal.session.sync.model.SyncResponse
-import im.vector.matrix.android.internal.task.TaskExecutor
 import im.vector.matrix.android.internal.util.JsonCanonicalizer
 import im.vector.matrix.android.internal.util.MatrixCoroutineDispatchers
 import im.vector.matrix.android.internal.util.fetchCopied
@@ -323,7 +318,7 @@ internal class DefaultCryptoService @Inject constructor(
      *
      * @param syncResponse the syncResponse
      */
-    fun onSyncCompleted(syncResponse: SyncResponse) = cryptoSequencer.launch {
+    suspend fun onSyncCompleted(syncResponse: SyncResponse)  {
         runCatching {
             if (syncResponse.deviceLists != null) {
                 deviceListManager.handleDeviceListsChanges(syncResponse.deviceLists.changed, syncResponse.deviceLists.left)
@@ -728,7 +723,7 @@ internal class DefaultCryptoService @Inject constructor(
     /**
      * Upload my user's device keys.
      */
-    private suspend fun uploadDeviceKeys(): KeysUploadResponse {
+    private suspend fun uploadDeviceKeys(): KeysUploadResponse = withContext(coroutineDispatchers.computation) {
         // Prepare the device keys data to send
         // Sign it
         val canonicalJson = JsonCanonicalizer.getCanonicalJson(Map::class.java, getMyDevice().signalableJSONDictionary())
@@ -741,7 +736,7 @@ internal class DefaultCryptoService @Inject constructor(
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
         val uploadDeviceKeysParams = UploadKeysTask.Params(rest, null, getMyDevice().deviceId)
-        return uploadKeysTask.execute(uploadDeviceKeysParams)
+        uploadKeysTask.execute(uploadDeviceKeysParams)
     }
 
     /**
@@ -844,10 +839,9 @@ internal class DefaultCryptoService @Inject constructor(
      * @param roomId the room id
      * @return true if the client should encrypt messages only for the verified devices.
      */
-// TODO add this info in CryptoRoomEntity?
-    override fun isRoomBlacklistUnverifiedDevices(roomId: String?): Boolean {
-        return roomId?.let { cryptoStore.getRoomsListBlacklistUnverifiedDevices().contains(it) }
-                ?: false
+    // TODO add this info in CryptoRoomEntity?
+    override fun isRoomBlacklistUnverifiedDevices(roomId: String): Boolean {
+        return cryptoStore.getRoomsListBlacklistUnverifiedDevices().contains(roomId)
     }
 
     /**
@@ -858,7 +852,6 @@ internal class DefaultCryptoService @Inject constructor(
      */
     private fun setRoomBlacklistUnverifiedDevices(roomId: String, add: Boolean) {
         val roomIds = cryptoStore.getRoomsListBlacklistUnverifiedDevices().toMutableList()
-
         if (add) {
             if (roomId !in roomIds) {
                 roomIds.add(roomId)
@@ -866,7 +859,6 @@ internal class DefaultCryptoService @Inject constructor(
         } else {
             roomIds.remove(roomId)
         }
-
         cryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds)
     }
 
@@ -888,7 +880,7 @@ internal class DefaultCryptoService @Inject constructor(
         setRoomBlacklistUnverifiedDevices(roomId, false)
     }
 
-// TODO Check if this method is still necessary
+    // TODO Check if this method is still necessary
     /**
      * Cancel any earlier room key request
      *
@@ -960,7 +952,7 @@ internal class DefaultCryptoService @Inject constructor(
         return unknownDevices
     }
 
-    override suspend fun downloadKeys(userIds: List<String>, forceDownload: Boolean): MXUsersDevicesMap<CryptoDeviceInfo> = cryptoSequencer.post {
+    override suspend fun downloadKeys(userIds: List<String>, forceDownload: Boolean): MXUsersDevicesMap<CryptoDeviceInfo> = withContext(coroutineDispatchers.computation) {
         deviceListManager.downloadKeys(userIds, forceDownload)
     }
 

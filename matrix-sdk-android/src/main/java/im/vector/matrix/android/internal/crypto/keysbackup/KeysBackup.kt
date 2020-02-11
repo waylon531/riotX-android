@@ -149,7 +149,6 @@ internal class KeysBackup @Inject constructor(
                 withContext(coroutineDispatchers.crypto) {
                     val olmPkDecryption = OlmPkDecryption()
                     val megolmBackupAuthData = MegolmBackupAuthData()
-
                     if (password != null) {
                         // Generate a private key from the password
                         val backgroundProgressListener = if (progressListener == null) {

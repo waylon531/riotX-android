@@ -40,8 +40,7 @@ internal class DeviceListManager @Inject constructor(private val cryptoStore: IM
                                                      private val syncTokenStore: SyncTokenStore,
                                                      private val credentials: Credentials,
                                                      private val downloadKeysForUsersTask: DownloadKeysForUsersTask,
-                                                     coroutineDispatchers: MatrixCoroutineDispatchers,
-                                                     taskExecutor: TaskExecutor) {
+                                                     cryptoSequencer: CryptoSequencer) {
 
     interface UserDevicesUpdateListener {
         fun onUsersDeviceUpdate(userIds: List<String>)
@@ -77,7 +76,7 @@ internal class DeviceListManager @Inject constructor(private val cryptoStore: IM
     private val notReadyToRetryHS = mutableSetOf<String>()
 
     init {
-        taskExecutor.executorScope.launch(coroutineDispatchers.crypto) {
+        cryptoSequencer.launch {
             var isUpdated = false
             val deviceTrackingStatuses = cryptoStore.getDeviceTrackingStatuses().toMutableMap()
             for ((userId, status) in deviceTrackingStatuses) {
@@ -318,7 +317,7 @@ internal class DeviceListManager @Inject constructor(private val cryptoStore: IM
         val response = try {
             downloadKeysForUsersTask.execute(params)
         } catch (throwable: Throwable) {
-            Timber.e(throwable, "##doKeyDownloadForUsers(): error")
+            Timber.v("##doKeyDownloadForUsers(): error")
             onKeysDownloadFailed(filteredUsers)
             throw throwable
         }

@@ -24,17 +24,20 @@ import im.vector.matrix.android.api.session.room.model.message.MessageContent
 import im.vector.matrix.android.internal.crypto.DefaultCryptoService
 import im.vector.matrix.android.internal.crypto.MXEventDecryptionResult
 import im.vector.matrix.android.internal.crypto.algorithms.olm.OlmDecryptionResult
+import im.vector.matrix.android.internal.crypto.tasks.RoomVerificationUpdateTask
 import im.vector.matrix.android.internal.crypto.verification.DefaultVerificationService
 import im.vector.matrix.android.internal.session.DefaultInitialSyncProgressService
 import im.vector.matrix.android.internal.session.sync.model.SyncResponse
 import im.vector.matrix.android.internal.session.sync.model.ToDeviceSyncResponse
 import timber.log.Timber
+import java.util.function.BiConsumer
 import javax.inject.Inject
 
 internal class CryptoSyncHandler @Inject constructor(private val cryptoService: DefaultCryptoService,
+                                                     private val roomVerificationUpdateTask: RoomVerificationUpdateTask,
                                                      private val verificationService: DefaultVerificationService) {
 
-    fun handleToDevice(toDevice: ToDeviceSyncResponse, initialSyncProgressService: DefaultInitialSyncProgressService? = null) {
+    suspend fun handleToDevice(toDevice: ToDeviceSyncResponse, initialSyncProgressService: DefaultInitialSyncProgressService? = null) {
         val total = toDevice.events?.size ?: 0
         toDevice.events?.forEachIndexed { index, event ->
             initialSyncProgressService?.reportProgress(((index / total.toFloat()) * 100).toInt())
@@ -50,8 +53,13 @@ internal class CryptoSyncHandler @Inject constructor(private val cryptoService: 
         }
     }
 
-    fun onSyncCompleted(syncResponse: SyncResponse) {
+    suspend fun onSyncCompleted(syncResponse: SyncResponse, initialSync: Boolean) {
         cryptoService.onSyncCompleted(syncResponse)
+        if (!initialSync && syncResponse.rooms?.join != null) {
+            for (roomSync in syncResponse.rooms.join) {
+                roomVerificationUpdateTask.execute(RoomVerificationUpdateTask.Params(roomSync.key, roomSync.value, verificationService))
+            }
+        }
     }
 
     /**

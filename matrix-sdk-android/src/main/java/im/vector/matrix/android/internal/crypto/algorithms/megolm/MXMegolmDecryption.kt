@@ -301,7 +301,7 @@ internal class MXMegolmDecryption(private val userId: String,
             return
         }
         val userId = request.userId ?: return
-        cryptoCoroutineScope.launch(coroutineDispatchers.crypto) {
+        cryptoCoroutineScope.launch(coroutineDispatchers.computation) {
             runCatching { deviceListManager.downloadKeys(listOf(userId), false) }
                     .mapCatching {
                         val deviceId = request.deviceId

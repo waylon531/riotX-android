@@ -18,7 +18,6 @@ package im.vector.matrix.android.api.session.crypto
 
 import android.content.Context
 import androidx.lifecycle.LiveData
-import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.listeners.ProgressListener
 import im.vector.matrix.android.api.session.crypto.crosssigning.CrossSigningService
 import im.vector.matrix.android.api.session.crypto.keysbackup.KeysBackupService
@@ -35,7 +34,6 @@ import im.vector.matrix.android.internal.crypto.model.MXDeviceInfo
 import im.vector.matrix.android.internal.crypto.model.MXEncryptEventContentResult
 import im.vector.matrix.android.internal.crypto.model.MXUsersDevicesMap
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
-import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.matrix.android.internal.crypto.model.rest.RoomKeyRequestBody
 
 interface CryptoService {
@@ -56,7 +54,7 @@ interface CryptoService {
 
     fun getKeysBackupService(): KeysBackupService
 
-    fun isRoomBlacklistUnverifiedDevices(roomId: String?): Boolean
+    fun isRoomBlacklistUnverifiedDevices(roomId: String): Boolean
 
     fun setWarnOnUnknownDevices(warn: Boolean)
 

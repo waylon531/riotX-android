@@ -110,7 +110,7 @@ internal class SyncResponseHandler @Inject constructor(private val monarchy: Mon
             userAccountDataSyncHandler.synchronizeWithServerIfNeeded(it.invite)
         }
         Timber.v("On sync completed")
-        cryptoSyncHandler.onSyncCompleted(syncResponse)
+        cryptoSyncHandler.onSyncCompleted(syncResponse, isInitialSync)
     }
 
     private suspend fun checkPushRules(roomsSyncResponse: RoomsSyncResponse, isInitialSync: Boolean) {

@@ -30,7 +30,7 @@ internal class CryptoSequencer @Inject constructor(private val cryptoScope: Coro
 
     private val coroutineSequencer = SemaphoreCoroutineSequencer()
 
-    fun <T> launch(block: suspend () -> T) = cryptoScope.launch(coroutineDispatchers.computation) {
+    fun <T> launch(block: suspend () -> T) = cryptoScope.launch(coroutineDispatchers.crypto) {
         coroutineSequencer.post(block)
     }
 

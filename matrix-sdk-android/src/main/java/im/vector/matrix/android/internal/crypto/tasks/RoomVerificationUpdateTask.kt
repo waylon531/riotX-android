@@ -16,17 +16,18 @@
 
 package im.vector.matrix.android.internal.crypto.tasks
 
-import im.vector.matrix.android.api.session.crypto.CryptoService
 import im.vector.matrix.android.api.session.crypto.MXCryptoError
 import im.vector.matrix.android.api.session.crypto.sas.VerificationService
 import im.vector.matrix.android.api.session.events.model.Event
 import im.vector.matrix.android.api.session.events.model.EventType
 import im.vector.matrix.android.api.session.events.model.toModel
 import im.vector.matrix.android.api.session.room.model.message.*
+import im.vector.matrix.android.internal.crypto.DecryptEventTask
 import im.vector.matrix.android.internal.crypto.algorithms.olm.OlmDecryptionResult
 import im.vector.matrix.android.internal.crypto.verification.DefaultVerificationService
 import im.vector.matrix.android.internal.di.DeviceId
 import im.vector.matrix.android.internal.di.UserId
+import im.vector.matrix.android.internal.session.sync.model.RoomSync
 import im.vector.matrix.android.internal.task.Task
 import timber.log.Timber
 import java.util.*
@@ -34,16 +35,16 @@ import javax.inject.Inject
 
 internal interface RoomVerificationUpdateTask : Task<RoomVerificationUpdateTask.Params, Unit> {
     data class Params(
-            val events: List<Event>,
-            val verificationService: DefaultVerificationService,
-            val cryptoService: CryptoService
+            val roomId: String,
+            val roomSync: RoomSync,
+            val verificationService: DefaultVerificationService
     )
 }
 
 internal class DefaultRoomVerificationUpdateTask @Inject constructor(
         @UserId private val userId: String,
         @DeviceId private val deviceId: String?,
-        private val cryptoService: CryptoService) : RoomVerificationUpdateTask {
+        private val decryptEventTask: DecryptEventTask) : RoomVerificationUpdateTask {
 
     companion object {
         // XXX what about multi-account?
@@ -51,9 +52,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
     }
 
     override suspend fun execute(params: RoomVerificationUpdateTask.Params) {
-        // TODO ignore initial sync or back pagination?
-
-        params.events.forEach { event ->
+        params.roomSync.timeline?.events?.forEach { event ->
             Timber.d("## SAS Verification live observer: received msgId: ${event.eventId} msgtype: ${event.type} from ${event.senderId}")
             Timber.v("## SAS Verification live observer: received msgId: $event")
 
@@ -70,7 +69,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                 // TODO use a global event decryptor? attache to session and that listen to new sessionId?
                 // for now decrypt sync
                 try {
-                    val result = cryptoService.decryptEvent(event, event.roomId + UUID.randomUUID().toString())
+                    val result = decryptEventTask.decryptEvent(event, params.roomId + UUID.randomUUID().toString())
                     event.mxDecryptionResult = OlmDecryptionResult(
                             payload = result.clearEvent,
                             senderKey = result.senderCurve25519Key,
@@ -133,22 +132,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                 Timber.v("## SAS Verification live observer: Ignore Transaction handled by other device  tid:$relatesTo ")
                 return@forEach
             }
-            when (event.getClearType()) {
-                EventType.KEY_VERIFICATION_START,
-                EventType.KEY_VERIFICATION_ACCEPT,
-                EventType.KEY_VERIFICATION_KEY,
-                EventType.KEY_VERIFICATION_MAC,
-                EventType.KEY_VERIFICATION_CANCEL,
-                EventType.KEY_VERIFICATION_READY,
-                EventType.KEY_VERIFICATION_DONE -> {
-                    params.verificationService.onRoomEvent(event)
-                }
-                EventType.MESSAGE -> {
-                    if (MessageType.MSGTYPE_VERIFICATION_REQUEST == event.getClearContent().toModel<MessageContent>()?.msgType) {
-                        params.verificationService.onRoomRequestReceived(event)
-                    }
-                }
-            }
+            params.verificationService.onRoomEvent(event)
         }
     }
 }

@@ -70,9 +70,12 @@ import im.vector.matrix.android.internal.crypto.verification.qrcode.generateShar
 import im.vector.matrix.android.internal.di.DeviceId
 import im.vector.matrix.android.internal.di.UserId
 import im.vector.matrix.android.internal.session.SessionScope
+import im.vector.matrix.android.internal.task.SemaphoreCoroutineSequencer
 import im.vector.matrix.android.internal.util.MatrixCoroutineDispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
 import java.util.UUID
@@ -87,11 +90,12 @@ internal class DefaultVerificationService @Inject constructor(
         private val myDeviceInfoHolder: Lazy<MyDeviceInfoHolder>,
         private val deviceListManager: DeviceListManager,
         private val setDeviceVerificationAction: SetDeviceVerificationAction,
-        private val coroutineDispatchers: MatrixCoroutineDispatchers,
         private val verificationTransportRoomMessageFactory: VerificationTransportRoomMessageFactory,
         private val verificationTransportToDeviceFactory: VerificationTransportToDeviceFactory,
         private val crossSigningService: CrossSigningService
 ) : DefaultVerificationTransaction.Listener, VerificationService {
+
+    private val sequencer = SemaphoreCoroutineSequencer()
 
     private val uiHandler = Handler(Looper.getMainLooper())
 
@@ -108,70 +112,52 @@ internal class DefaultVerificationService @Inject constructor(
     private val pendingRequests = HashMap<String, ArrayList<PendingVerificationRequest>>()
 
     // Event received from the sync
-    fun onToDeviceEvent(event: Event) {
-        GlobalScope.launch(coroutineDispatchers.crypto) {
-            when (event.getClearType()) {
-                EventType.KEY_VERIFICATION_START         -> {
-                    onStartRequestReceived(event)
-                }
-                EventType.KEY_VERIFICATION_CANCEL        -> {
-                    onCancelReceived(event)
-                }
-                EventType.KEY_VERIFICATION_ACCEPT        -> {
-                    onAcceptReceived(event)
-                }
-                EventType.KEY_VERIFICATION_KEY           -> {
-                    onKeyReceived(event)
-                }
-                EventType.KEY_VERIFICATION_MAC           -> {
-                    onMacReceived(event)
-                }
-                EventType.KEY_VERIFICATION_READY         -> {
-                    onReadyReceived(event)
-                }
-                MessageType.MSGTYPE_VERIFICATION_REQUEST -> {
-                    onRequestReceived(event)
-                }
-                else                                     -> {
-                    // ignore
-                }
+    suspend fun onToDeviceEvent(event: Event) = sequencer.post {
+        when (event.getClearType()) {
+            EventType.KEY_VERIFICATION_START         -> onStartRequestReceived(event)
+            EventType.KEY_VERIFICATION_CANCEL        -> onCancelReceived(event)
+            EventType.KEY_VERIFICATION_ACCEPT        -> onAcceptReceived(event)
+            EventType.KEY_VERIFICATION_KEY           -> onKeyReceived(event)
+            EventType.KEY_VERIFICATION_MAC           -> onMacReceived(event)
+            EventType.KEY_VERIFICATION_READY         -> onReadyReceived(event)
+            MessageType.MSGTYPE_VERIFICATION_REQUEST -> onRequestReceived(event)
+            else                                     -> {
+                // ignore
             }
         }
     }
 
-    fun onRoomEvent(event: Event) {
-        GlobalScope.launch(coroutineDispatchers.crypto) {
-            when (event.getClearType()) {
-                EventType.KEY_VERIFICATION_START  -> {
-                    onRoomStartRequestReceived(event)
+    suspend fun onRoomEvent(event: Event) = sequencer.post {
+        when (event.getClearType()) {
+            EventType.KEY_VERIFICATION_START  -> {
+                onRoomStartRequestReceived(event)
+            }
+            EventType.KEY_VERIFICATION_CANCEL -> {
+                // MultiSessions | ignore events if i didn't sent the start from this device, or accepted from this device
+                onRoomCancelReceived(event)
+            }
+            EventType.KEY_VERIFICATION_ACCEPT -> {
+                onRoomAcceptReceived(event)
+            }
+            EventType.KEY_VERIFICATION_KEY    -> {
+                onRoomKeyRequestReceived(event)
+            }
+            EventType.KEY_VERIFICATION_MAC    -> {
+                onRoomMacReceived(event)
+            }
+            EventType.KEY_VERIFICATION_READY  -> {
+                onRoomReadyReceived(event)
+            }
+            EventType.KEY_VERIFICATION_DONE   -> {
+                onRoomDoneReceived(event)
+            }
+            EventType.MESSAGE                 -> {
+                if (MessageType.MSGTYPE_VERIFICATION_REQUEST == event.getClearContent().toModel<MessageContent>()?.msgType) {
+                    onRoomRequestReceived(event)
                 }
-                EventType.KEY_VERIFICATION_CANCEL -> {
-                    // MultiSessions | ignore events if i didn't sent the start from this device, or accepted from this device
-                    onRoomCancelReceived(event)
-                }
-                EventType.KEY_VERIFICATION_ACCEPT -> {
-                    onRoomAcceptReceived(event)
-                }
-                EventType.KEY_VERIFICATION_KEY    -> {
-                    onRoomKeyRequestReceived(event)
-                }
-                EventType.KEY_VERIFICATION_MAC    -> {
-                    onRoomMacReceived(event)
-                }
-                EventType.KEY_VERIFICATION_READY  -> {
-                    onRoomReadyReceived(event)
-                }
-                EventType.KEY_VERIFICATION_DONE   -> {
-                    onRoomDoneReceived(event)
-                }
-                EventType.MESSAGE                 -> {
-                    if (MessageType.MSGTYPE_VERIFICATION_REQUEST == event.getClearContent().toModel<MessageContent>()?.msgType) {
-                        onRoomRequestReceived(event)
-                    }
-                }
-                else                              -> {
-                    // ignore
-                }
+            }
+            else                              -> {
+                // ignore
             }
         }
     }
