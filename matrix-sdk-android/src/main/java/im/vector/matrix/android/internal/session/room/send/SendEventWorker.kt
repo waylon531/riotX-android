@@ -44,7 +44,7 @@ internal class SendEventWorker(context: Context,
             override val lastFailureMessage: String? = null
     ) : SessionWorkerParams
 
-    @Inject lateinit var localEchoUpdater: LocalEchoUpdater
+    @Inject lateinit var localEchoRepository: LocalEchoRepository
     @Inject lateinit var roomAPI: RoomAPI
     @Inject lateinit var eventBus: EventBus
 
@@ -61,7 +61,7 @@ internal class SendEventWorker(context: Context,
         }
 
         if (params.lastFailureMessage != null) {
-            localEchoUpdater.updateSendState(event.eventId, SendState.UNDELIVERED)
+            localEchoRepository.updateSendState(event.eventId, SendState.UNDELIVERED)
             // Transmit the error
             return Result.success(inputData)
         }
@@ -72,7 +72,7 @@ internal class SendEventWorker(context: Context,
             if (exception.shouldBeRetried()) {
                 Result.retry()
             } else {
-                localEchoUpdater.updateSendState(event.eventId, SendState.UNDELIVERED)
+                localEchoRepository.updateSendState(event.eventId, SendState.UNDELIVERED)
                 // always return success, or the chain will be stuck for ever!
                 Result.success()
             }
@@ -80,7 +80,7 @@ internal class SendEventWorker(context: Context,
     }
 
     private suspend fun sendEvent(eventId: String, eventType: String, content: Content?, roomId: String) {
-        localEchoUpdater.updateSendState(eventId, SendState.SENDING)
+        localEchoRepository.updateSendState(eventId, SendState.SENDING)
         executeRequest<SendResponse>(eventBus) {
             apiCall = roomAPI.send(
                     eventId,
@@ -89,6 +89,6 @@ internal class SendEventWorker(context: Context,
                     content
             )
         }
-        localEchoUpdater.updateSendState(eventId, SendState.SENT)
+        localEchoRepository.updateSendState(eventId, SendState.SENT)
     }
 }

@@ -21,7 +21,6 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.Operation
 import androidx.work.WorkInfo
-import com.zhuinden.monarchy.Monarchy
 import im.vector.matrix.android.R
 import im.vector.matrix.android.api.session.crypto.sas.CancelCode
 import im.vector.matrix.android.api.session.crypto.sas.VerificationTxState
@@ -47,7 +46,8 @@ import im.vector.matrix.android.internal.di.DeviceId
 import im.vector.matrix.android.internal.di.SessionId
 import im.vector.matrix.android.internal.di.UserId
 import im.vector.matrix.android.internal.di.WorkManagerProvider
-import im.vector.matrix.android.internal.session.room.send.LocalEchoEventFactory
+import im.vector.matrix.android.internal.session.room.send.LocalEchoRepository
+import im.vector.matrix.android.internal.task.TaskExecutor
 import im.vector.matrix.android.internal.util.StringProvider
 import im.vector.matrix.android.internal.worker.WorkerParamsFactory
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +65,8 @@ internal class VerificationTransportRoomMessage(
         private val userId: String,
         private val userDeviceId: String?,
         private val roomId: String,
-        private val localEchoEventFactory: LocalEchoEventFactory,
+        private val localEchoRepository: LocalEchoRepository,
+        private val taskExecutor: TaskExecutor,
         private val tx: DefaultVerificationTransaction?
 ) : VerificationTransport {
 
@@ -330,7 +331,9 @@ internal class VerificationTransportRoomMessage(
                 content = content,
                 unsignedData = UnsignedData(age = null, transactionId = localID)
         ).also {
-            localEchoEventFactory.createLocalEcho(it)
+            taskExecutor.executorScope.launch {
+                localEchoRepository.createLocalEcho(it)
+            }
         }
     }
 
@@ -352,9 +355,10 @@ internal class VerificationTransportRoomMessageFactory @Inject constructor(
         private val userId: String,
         @DeviceId
         private val deviceId: String?,
-        private val localEchoEventFactory: LocalEchoEventFactory) {
+        private val localEchoRepository: LocalEchoRepository,
+        private val taskExecutor: TaskExecutor) {
 
     fun createTransport(roomId: String, tx: DefaultVerificationTransaction?): VerificationTransportRoomMessage {
-        return VerificationTransportRoomMessage(workManagerProvider, stringProvider, sessionId, userId, deviceId, roomId, localEchoEventFactory, tx)
+        return VerificationTransportRoomMessage(workManagerProvider, stringProvider, sessionId, userId, deviceId, roomId, localEchoRepository, taskExecutor, tx)
     }
 }

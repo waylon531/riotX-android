@@ -17,6 +17,7 @@
 package im.vector.matrix.android.internal.session.room.send
 
 import com.zhuinden.monarchy.Monarchy
+import dagger.Lazy
 import im.vector.matrix.android.api.session.events.model.Event
 import im.vector.matrix.android.api.session.events.model.EventType
 import im.vector.matrix.android.api.session.events.model.toModel
@@ -36,17 +37,33 @@ import im.vector.matrix.android.internal.database.query.where
 import im.vector.matrix.android.internal.session.room.RoomSummaryUpdater
 import im.vector.matrix.android.internal.session.room.membership.RoomMemberHelper
 import im.vector.matrix.android.internal.session.room.timeline.DefaultTimeline
+import im.vector.matrix.android.internal.session.sync.RoomEventsProcessor
+import im.vector.matrix.android.internal.session.sync.RoomEventsProcessors
 import im.vector.matrix.android.internal.util.awaitTransaction
 import io.realm.Realm
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
-import java.lang.IllegalStateException
 import javax.inject.Inject
 
 internal class LocalEchoRepository @Inject constructor(private val monarchy: Monarchy,
                                                        private val roomSummaryUpdater: RoomSummaryUpdater,
                                                        private val eventBus: EventBus,
-                                                       private val timelineEventMapper: TimelineEventMapper) {
+                                                       private val timelineEventMapper: TimelineEventMapper,
+                                                       private val roomEventsProcessors: RoomEventsProcessors) {
+
+    suspend fun updateSendState(eventId: String, sendState: SendState) {
+        Timber.v("Update local state of $eventId to ${sendState.name}")
+        monarchy.awaitTransaction { realm ->
+            val sendingEventEntity = EventEntity.where(realm, eventId).findFirst()
+            if (sendingEventEntity != null) {
+                if (sendState == SendState.SENT && sendingEventEntity.sendState == SendState.SYNCED) {
+                    // If already synced, do not put as sent
+                } else {
+                    sendingEventEntity.sendState = sendState
+                }
+            }
+        }
+    }
 
     suspend fun createLocalEcho(event: Event) {
         val roomId = event.roomId ?: throw IllegalStateException("You should have set a roomId for your event")
@@ -75,6 +92,7 @@ internal class LocalEchoRepository @Inject constructor(private val monarchy: Mon
             roomEntity.sendingTimelineEvents.add(0, timelineEventEntity)
             roomSummaryUpdater.update(realm, roomId)
         }
+        roomEventsProcessors.process(RoomEventsProcessor.Mode.LOCAL_ECHO, roomId, listOf(event))
     }
 
     suspend fun deleteFailedEcho(roomId: String, localEcho: TimelineEvent) {

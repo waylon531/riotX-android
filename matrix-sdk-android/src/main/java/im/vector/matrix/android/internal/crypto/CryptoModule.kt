@@ -66,7 +66,6 @@ import im.vector.matrix.android.internal.crypto.tasks.DefaultDownloadKeysForUser
 import im.vector.matrix.android.internal.crypto.tasks.DefaultEncryptEventTask
 import im.vector.matrix.android.internal.crypto.tasks.DefaultGetDeviceInfoTask
 import im.vector.matrix.android.internal.crypto.tasks.DefaultGetDevicesTask
-import im.vector.matrix.android.internal.crypto.tasks.DefaultRoomVerificationUpdateTask
 import im.vector.matrix.android.internal.crypto.tasks.DefaultSendToDeviceTask
 import im.vector.matrix.android.internal.crypto.tasks.DefaultSendVerificationMessageTask
 import im.vector.matrix.android.internal.crypto.tasks.DefaultSetDeviceNameTask
@@ -79,13 +78,14 @@ import im.vector.matrix.android.internal.crypto.tasks.DownloadKeysForUsersTask
 import im.vector.matrix.android.internal.crypto.tasks.EncryptEventTask
 import im.vector.matrix.android.internal.crypto.tasks.GetDeviceInfoTask
 import im.vector.matrix.android.internal.crypto.tasks.GetDevicesTask
-import im.vector.matrix.android.internal.crypto.tasks.RoomVerificationUpdateTask
 import im.vector.matrix.android.internal.crypto.tasks.SendToDeviceTask
 import im.vector.matrix.android.internal.crypto.tasks.SendVerificationMessageTask
 import im.vector.matrix.android.internal.crypto.tasks.SetDeviceNameTask
 import im.vector.matrix.android.internal.crypto.tasks.UploadKeysTask
 import im.vector.matrix.android.internal.crypto.tasks.UploadSignaturesTask
 import im.vector.matrix.android.internal.crypto.tasks.UploadSigningKeysTask
+import im.vector.matrix.android.internal.crypto.verification.DefaultVerificationService
+import im.vector.matrix.android.internal.crypto.verification.VerificationEventHandler
 import im.vector.matrix.android.internal.database.RealmKeysUtils
 import im.vector.matrix.android.internal.di.CryptoDatabase
 import im.vector.matrix.android.internal.di.SessionFilesDirectory
@@ -251,8 +251,5 @@ internal abstract class CryptoModule {
     abstract fun bindComputeShieldTrustTask(defaultShieldTrustUpdater: DefaultComputeTrustTask): ComputeTrustTask
 
     @Binds
-    abstract fun bindRoomVerificationUpdateTask(task: DefaultRoomVerificationUpdateTask): RoomVerificationUpdateTask
-
-
-
+    abstract fun bindVerificationEventHandler(verificationEventHandler: DefaultVerificationService): VerificationEventHandler
 }

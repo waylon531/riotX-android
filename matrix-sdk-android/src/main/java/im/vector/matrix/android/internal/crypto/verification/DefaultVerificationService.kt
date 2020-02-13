@@ -71,11 +71,8 @@ import im.vector.matrix.android.internal.di.DeviceId
 import im.vector.matrix.android.internal.di.UserId
 import im.vector.matrix.android.internal.session.SessionScope
 import im.vector.matrix.android.internal.task.SemaphoreCoroutineSequencer
-import im.vector.matrix.android.internal.util.MatrixCoroutineDispatchers
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
 import java.util.UUID
@@ -93,7 +90,7 @@ internal class DefaultVerificationService @Inject constructor(
         private val verificationTransportRoomMessageFactory: VerificationTransportRoomMessageFactory,
         private val verificationTransportToDeviceFactory: VerificationTransportToDeviceFactory,
         private val crossSigningService: CrossSigningService
-) : DefaultVerificationTransaction.Listener, VerificationService {
+) : DefaultVerificationTransaction.Listener, VerificationService, VerificationEventHandler {
 
     private val sequencer = SemaphoreCoroutineSequencer()
 
@@ -112,7 +109,7 @@ internal class DefaultVerificationService @Inject constructor(
     private val pendingRequests = HashMap<String, ArrayList<PendingVerificationRequest>>()
 
     // Event received from the sync
-    suspend fun onToDeviceEvent(event: Event) = sequencer.post {
+    override suspend fun onToDeviceEvent(event: Event) = sequencer.post {
         when (event.getClearType()) {
             EventType.KEY_VERIFICATION_START         -> onStartRequestReceived(event)
             EventType.KEY_VERIFICATION_CANCEL        -> onCancelReceived(event)
@@ -127,7 +124,7 @@ internal class DefaultVerificationService @Inject constructor(
         }
     }
 
-    suspend fun onRoomEvent(event: Event) = sequencer.post {
+    override suspend fun onRoomEvent(event: Event) = sequencer.post {
         when (event.getClearType()) {
             EventType.KEY_VERIFICATION_START  -> {
                 onRoomStartRequestReceived(event)
@@ -240,7 +237,7 @@ internal class DefaultVerificationService @Inject constructor(
         }
     }
 
-    fun onRoomRequestHandledByOtherDevice(event: Event) {
+    override suspend fun onRoomRequestHandledByOtherDevice(event: Event) {
         val requestInfo = event.getClearContent().toModel<MessageRelationContent>()
                 ?: return
         val requestId = requestInfo.relatesTo?.eventId ?: return
@@ -291,7 +288,7 @@ internal class DefaultVerificationService @Inject constructor(
         dispatchRequestAdded(pendingVerificationRequest)
     }
 
-    suspend fun onRoomRequestReceived(event: Event) {
+    private suspend fun onRoomRequestReceived(event: Event) {
         Timber.v("## SAS Verification request from ${event.senderId} in room ${event.roomId}")
         val requestInfo = event.getClearContent().toModel<MessageVerificationRequestContent>()
                 ?: return

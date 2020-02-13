@@ -24,44 +24,39 @@ import im.vector.matrix.android.api.session.events.model.toModel
 import im.vector.matrix.android.api.session.room.model.message.*
 import im.vector.matrix.android.internal.crypto.DecryptEventTask
 import im.vector.matrix.android.internal.crypto.algorithms.olm.OlmDecryptionResult
-import im.vector.matrix.android.internal.crypto.verification.DefaultVerificationService
+import im.vector.matrix.android.internal.crypto.verification.VerificationEventHandler
 import im.vector.matrix.android.internal.di.DeviceId
 import im.vector.matrix.android.internal.di.UserId
-import im.vector.matrix.android.internal.session.sync.model.RoomSync
-import im.vector.matrix.android.internal.task.Task
+import im.vector.matrix.android.internal.session.sync.RoomEventsProcessor
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
-internal interface RoomVerificationUpdateTask : Task<RoomVerificationUpdateTask.Params, Unit> {
-    data class Params(
-            val roomId: String,
-            val roomSync: RoomSync,
-            val verificationService: DefaultVerificationService
-    )
-}
-
-internal class DefaultRoomVerificationUpdateTask @Inject constructor(
-        @UserId private val userId: String,
+internal class RoomEventVerificationProcessor @Inject constructor(
         @DeviceId private val deviceId: String?,
-        private val decryptEventTask: DecryptEventTask) : RoomVerificationUpdateTask {
+        @UserId private val userId: String,
+        private val onVerificationEvent: VerificationEventHandler,
+        private val decryptEventTask: DecryptEventTask) : RoomEventsProcessor {
 
     companion object {
         // XXX what about multi-account?
         private val transactionsHandledByOtherDevice = ArrayList<String>()
     }
 
-    override suspend fun execute(params: RoomVerificationUpdateTask.Params) {
-        params.roomSync.timeline?.events?.forEach { event ->
-            Timber.d("## SAS Verification live observer: received msgId: ${event.eventId} msgtype: ${event.type} from ${event.senderId}")
-            Timber.v("## SAS Verification live observer: received msgId: $event")
+    override suspend fun process(mode: RoomEventsProcessor.Mode, roomId: String, events: List<Event>) {
+        if (mode != RoomEventsProcessor.Mode.INCREMENTAL_SYNC) {
+            return
+        }
+        events.forEach { event ->
+            Timber.d("## SAS Verification: received msgId: ${event.eventId} msgtype: ${event.type} from ${event.senderId}")
+            Timber.v("## SAS Verification: received msgId: $event")
 
             // If the request is in the future by more than 5 minutes or more than 10 minutes in the past,
             // the message should be ignored by the receiver.
 
             if (!VerificationService.isValidRequest(event.ageLocalTs
                             ?: event.originServerTs)) return@forEach Unit.also {
-                Timber.d("## SAS Verification live observer: msgId: ${event.eventId} is outdated")
+                Timber.d("## SAS Verification: msgId: ${event.eventId} is outdated")
             }
 
             // decrypt if needed?
@@ -69,7 +64,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                 // TODO use a global event decryptor? attache to session and that listen to new sessionId?
                 // for now decrypt sync
                 try {
-                    val result = decryptEventTask.decryptEvent(event, params.roomId + UUID.randomUUID().toString())
+                    val result = decryptEventTask.decryptEvent(event, roomId + UUID.randomUUID().toString())
                     event.mxDecryptionResult = OlmDecryptionResult(
                             payload = result.clearEvent,
                             senderKey = result.senderCurve25519Key,
@@ -80,7 +75,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                     Timber.e("## SAS Failed to decrypt event: ${event.eventId}")
                 }
             }
-            Timber.v("## SAS Verification live observer: received msgId: ${event.eventId} type: ${event.getClearType()}")
+            Timber.v("## SAS Verification: received msgId: ${event.eventId} type: ${event.getClearType()}")
 
             if (event.senderId == userId) {
                 // If it's send from me, we need to keep track of Requests or Start
@@ -92,7 +87,7 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                         event.getClearContent().toModel<MessageVerificationRequestContent>()?.let {
                             if (it.fromDevice != deviceId) {
                                 // The verification is requested from another device
-                                Timber.v("## SAS Verification live observer: Transaction requested from other device  tid:${event.eventId} ")
+                                Timber.v("## SAS Verification: Transaction requested from other device  tid:${event.eventId} ")
                                 event.eventId?.let { txId -> transactionsHandledByOtherDevice.add(txId) }
                             }
                         }
@@ -101,24 +96,24 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
                     event.getClearContent().toModel<MessageVerificationStartContent>()?.let {
                         if (it.fromDevice != deviceId) {
                             // The verification is started from another device
-                            Timber.v("## SAS Verification live observer: Transaction started by other device  tid:${it.transactionID} ")
+                            Timber.v("## SAS Verification : Transaction started by other device  tid:${it.transactionID} ")
                             it.transactionID?.let { txId -> transactionsHandledByOtherDevice.add(txId) }
-                            params.verificationService.onRoomRequestHandledByOtherDevice(event)
+                            onVerificationEvent.onRoomRequestHandledByOtherDevice(event)
                         }
                     }
                 } else if (EventType.KEY_VERIFICATION_READY == event.type) {
                     event.getClearContent().toModel<MessageVerificationReadyContent>()?.let {
                         if (it.fromDevice != deviceId) {
                             // The verification is started from another device
-                            Timber.v("## SAS Verification live observer: Transaction started by other device  tid:${it.transactionID} ")
+                            Timber.v("## SAS Verification : Transaction started by other device  tid:${it.transactionID} ")
                             it.transactionID?.let { txId -> transactionsHandledByOtherDevice.add(txId) }
-                            params.verificationService.onRoomRequestHandledByOtherDevice(event)
+                            onVerificationEvent.onRoomRequestHandledByOtherDevice(event)
                         }
                     }
                 } else if (EventType.KEY_VERIFICATION_CANCEL == event.type || EventType.KEY_VERIFICATION_DONE == event.type) {
                     event.getClearContent().toModel<MessageRelationContent>()?.relatesTo?.eventId?.let {
                         transactionsHandledByOtherDevice.remove(it)
-                        params.verificationService.onRoomRequestHandledByOtherDevice(event)
+                        onVerificationEvent.onRoomRequestHandledByOtherDevice(event)
                     }
                 }
 
@@ -129,10 +124,10 @@ internal class DefaultRoomVerificationUpdateTask @Inject constructor(
             val relatesTo = event.getClearContent().toModel<MessageRelationContent>()?.relatesTo?.eventId
             if (relatesTo != null && transactionsHandledByOtherDevice.contains(relatesTo)) {
                 // Ignore this event, it is directed to another of my devices
-                Timber.v("## SAS Verification live observer: Ignore Transaction handled by other device  tid:$relatesTo ")
+                Timber.v("## SAS Verification : Ignore Transaction handled by other device  tid:$relatesTo ")
                 return@forEach
             }
-            params.verificationService.onRoomEvent(event)
+            onVerificationEvent.onRoomEvent(event)
         }
     }
 }

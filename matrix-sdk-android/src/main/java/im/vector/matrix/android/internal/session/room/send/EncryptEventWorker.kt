@@ -47,7 +47,7 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
     ) : SessionWorkerParams
 
     @Inject lateinit var crypto: CryptoService
-    @Inject lateinit var localEchoUpdater: LocalEchoUpdater
+    @Inject lateinit var localEchoRepository: LocalEchoRepository
 
     override suspend fun doWork(): Result {
         Timber.v("Start Encrypt work")
@@ -69,7 +69,7 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
         if (localEvent.eventId == null) {
             return Result.success()
         }
-        localEchoUpdater.updateSendState(localEvent.eventId, SendState.ENCRYPTING)
+        localEchoRepository.updateSendState(localEvent.eventId, SendState.ENCRYPTING)
 
         val localMutableContent = localEvent.content?.toMutableMap() ?: mutableMapOf()
         params.keepKeys?.forEach {
@@ -97,7 +97,7 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
                 is Failure.CryptoError -> SendState.FAILED_UNKNOWN_DEVICES
                 else                   -> SendState.UNDELIVERED
             }
-            localEchoUpdater.updateSendState(localEvent.eventId, sendState)
+            localEchoRepository.updateSendState(localEvent.eventId, sendState)
             // always return success, or the chain will be stuck for ever!
             val nextWorkerParams = SendEventWorker.Params(params.sessionId, params.roomId, localEvent, throwable.localizedMessage ?: "Error")
             Result.success(WorkerParamsFactory.toData(nextWorkerParams))

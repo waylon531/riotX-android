@@ -68,7 +68,7 @@ import javax.inject.Inject
  *
  * The transactionID is used as loc
  */
-internal class LocalEchoEventFactory @Inject constructor(
+internal class EventFactory @Inject constructor(
         @UserId private val userId: String,
         private val stringProvider: StringProvider,
         private val textPillsUtils: TextPillsUtils,
@@ -438,13 +438,6 @@ internal class LocalEchoEventFactory @Inject constructor(
                 content = reason?.let { mapOf("reason" to it).toContent() },
                 unsignedData = UnsignedData(age = null, transactionId = localID)
         )
-    }
-
-    fun createLocalEcho(event: Event) {
-        checkNotNull(event.roomId) { "Your event should have a roomId" }
-        taskExecutor.executorScope.launch {
-            localEchoRepository.createLocalEcho(event)
-        }
     }
 
     companion object {
