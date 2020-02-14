@@ -66,6 +66,6 @@ fun Session.startSyncing(context: Context) {
  * Tell is the session has unsaved e2e keys in the backup
  */
 fun Session.hasUnsavedKeys(): Boolean {
-    return getCryptoService().inboundGroupSessionsCount(false) > 0
-            && getCryptoService().getKeysBackupService().state != KeysBackupState.ReadyToBackUp
+    return cryptoService().inboundGroupSessionsCount(false) > 0
+            && cryptoService().keysBackupService().state != KeysBackupState.ReadyToBackUp
 }

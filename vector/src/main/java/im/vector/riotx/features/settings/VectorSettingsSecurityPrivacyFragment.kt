@@ -136,7 +136,7 @@ class VectorSettingsSecurityPrivacyFragment @Inject constructor(
 
     private fun refreshXSigningStatus() {
         if (vectorPreferences.developerMode()) {
-            val crossSigningService = session.getCryptoService().getCrossSigningService()
+            val crossSigningService = session.cryptoService().crossSigningService()
             val crossSigningKeys = crossSigningService.getMyCrossSigningKeys()
             val xSigningIsEnableInAccount = crossSigningKeys != null
             val xSigningKeysAreTrusted = crossSigningService.checkUserTrust(session.myUserId).isVerified()
@@ -415,10 +415,10 @@ class VectorSettingsSecurityPrivacyFragment @Inject constructor(
 
         sendToUnverifiedDevicesPref.isChecked = false
 
-        sendToUnverifiedDevicesPref.isChecked = session.getCryptoService().getGlobalBlacklistUnverifiedDevices()
+        sendToUnverifiedDevicesPref.isChecked = session.cryptoService().getGlobalBlacklistUnverifiedDevices()
 
         sendToUnverifiedDevicesPref.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-            session.getCryptoService().setGlobalBlacklistUnverifiedDevices(sendToUnverifiedDevicesPref.isChecked)
+            session.cryptoService().setGlobalBlacklistUnverifiedDevices(sendToUnverifiedDevicesPref.isChecked)
 
             true
         }
@@ -429,7 +429,7 @@ class VectorSettingsSecurityPrivacyFragment @Inject constructor(
     // ==============================================================================================================
 
     private fun refreshMyDevice() {
-        session.getCryptoService().getUserDevices(session.myUserId).map {
+        session.cryptoService().getUserDevices(session.myUserId).map {
             DeviceInfo(
                     user_id = session.myUserId,
                     deviceId = it.deviceId,
@@ -440,7 +440,7 @@ class VectorSettingsSecurityPrivacyFragment @Inject constructor(
         }
         // TODO Move to a ViewModel...
         lifecycleScope.launch(Dispatchers.Main) {
-            val deviceList = session.getCryptoService().getDevicesList()
+            val deviceList = session.cryptoService().getDevicesList()
             if (isAdded) {
                 refreshCryptographyPreference(deviceList)
             }

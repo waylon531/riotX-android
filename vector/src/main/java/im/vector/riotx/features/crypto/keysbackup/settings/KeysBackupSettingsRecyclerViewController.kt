@@ -119,8 +119,8 @@ class KeysBackupSettingsRecyclerViewController @Inject constructor(private val s
                     style(GenericItem.STYLE.BIG_TEXT)
                     hasIndeterminateProcess(true)
 
-                    val totalKeys = session.getCryptoService().inboundGroupSessionsCount(false)
-                    val backedUpKeys = session.getCryptoService().inboundGroupSessionsCount(true)
+                    val totalKeys = session.cryptoService().inboundGroupSessionsCount(false)
+                    val backedUpKeys = session.cryptoService().inboundGroupSessionsCount(true)
 
                     val remainingKeysToBackup = totalKeys - backedUpKeys
 

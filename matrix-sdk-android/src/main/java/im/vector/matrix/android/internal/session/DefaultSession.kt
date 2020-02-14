@@ -196,11 +196,11 @@ internal class DefaultSession @Inject constructor(
         sessionListeners.dispatchGlobalError(globalError)
     }
 
-    override fun getContentUrlResolver() = contentUrlResolver
+    override fun contentUrlResolver() = contentUrlResolver
 
-    override fun getContentUploadStateTracker() = contentUploadProgressTracker
+    override fun contentUploadStateTracker() = contentUploadProgressTracker
 
-    override fun getCryptoService(): CryptoService = cryptoService.get()
+    override fun cryptoService(): CryptoService = cryptoService.get()
 
     override fun addListener(listener: Session.Listener) {
         sessionListeners.addListener(listener)

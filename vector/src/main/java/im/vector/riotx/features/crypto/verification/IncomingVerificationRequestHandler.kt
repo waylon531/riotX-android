@@ -40,11 +40,11 @@ class IncomingVerificationRequestHandler @Inject constructor(private val context
 
     fun start(session: Session) {
         this.session = session
-        session.getCryptoService().getVerificationService().addListener(this)
+        session.cryptoService().verificationService().addListener(this)
     }
 
     fun stop() {
-        session?.getCryptoService()?.getVerificationService()?.removeListener(this)
+        session?.cryptoService()?.verificationService()?.removeListener(this)
         this.session = null
     }
 
@@ -144,7 +144,7 @@ class IncomingVerificationRequestHandler @Inject constructor(private val context
                             }
                         }
                         dismissedAction = Runnable {
-                            session?.getCryptoService()?.getVerificationService()?.declineVerificationRequestInDMs(pr.otherUserId,
+                            session?.cryptoService()?.verificationService()?.declineVerificationRequestInDMs(pr.otherUserId,
                                     pr.requestInfo?.fromDevice ?: "",
                                     pr.transactionId ?: "",
                                     pr.roomId ?: ""

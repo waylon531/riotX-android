@@ -43,7 +43,7 @@ class ContentUploadStateTrackerBinder @Inject constructor(private val activeSess
              isLocalFile: Boolean,
              progressLayout: ViewGroup) {
         activeSessionHolder.getSafeActiveSession()?.also { session ->
-            val uploadStateTracker = session.getContentUploadStateTracker()
+            val uploadStateTracker = session.contentUploadStateTracker()
             val updateListener = ContentMediaProgressUpdater(progressLayout, isLocalFile, colorProvider, errorFormatter)
             updateListeners[eventId] = updateListener
             uploadStateTracker.track(eventId, updateListener)
@@ -52,7 +52,7 @@ class ContentUploadStateTrackerBinder @Inject constructor(private val activeSess
 
     fun unbind(eventId: String) {
         activeSessionHolder.getSafeActiveSession()?.also { session ->
-            val uploadStateTracker = session.getContentUploadStateTracker()
+            val uploadStateTracker = session.contentUploadStateTracker()
             updateListeners[eventId]?.also {
                 uploadStateTracker.untrack(eventId, it)
             }
@@ -61,7 +61,7 @@ class ContentUploadStateTrackerBinder @Inject constructor(private val activeSess
 
     fun clear() {
         activeSessionHolder.getSafeActiveSession()?.also {
-            it.getContentUploadStateTracker().clear()
+            it.contentUploadStateTracker().clear()
         }
     }
 }

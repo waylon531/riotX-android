@@ -114,7 +114,7 @@ class NotifiableEventResolver @Inject constructor(private val stringProvider: St
                 // TODO use a global event decryptor? attache to session and that listen to new sessionId?
                 // for now decrypt sync
                 try {
-                    val result = session.getCryptoService().decryptEvent(event.root, event.root.roomId + UUID.randomUUID().toString())
+                    val result = session.cryptoService().decryptEvent(event.root, event.root.roomId + UUID.randomUUID().toString())
                     event.root.mxDecryptionResult = OlmDecryptionResult(
                             payload = result.clearEvent,
                             senderKey = result.senderCurve25519Key,
@@ -146,13 +146,13 @@ class NotifiableEventResolver @Inject constructor(private val stringProvider: St
             notifiableEvent.soundName = null
 
             // Get the avatars URL
-            notifiableEvent.roomAvatarPath = session.getContentUrlResolver()
+            notifiableEvent.roomAvatarPath = session.contentUrlResolver()
                     .resolveThumbnail(room.roomSummary()?.avatarUrl,
                             250,
                             250,
                             ContentUrlResolver.ThumbnailMethod.SCALE)
 
-            notifiableEvent.senderAvatarPath = session.getContentUrlResolver()
+            notifiableEvent.senderAvatarPath = session.contentUrlResolver()
                     .resolveThumbnail(event.senderAvatar,
                             250,
                             250,

@@ -132,7 +132,7 @@ class HomeActivity : VectorBaseActivity(), ToolbarConfigurable {
         // ensure keys are downloaded
         lifecycleScope.launch(Dispatchers.Main) {
             try {
-                session.getCryptoService().downloadKeys(listOf(session.myUserId), true)
+                session.cryptoService().downloadKeys(listOf(session.myUserId), true)
                 alertCompleteSecurity(session)
             } catch (failure: Throwable) {
 
@@ -142,7 +142,7 @@ class HomeActivity : VectorBaseActivity(), ToolbarConfigurable {
     }
 
     private fun alertCompleteSecurity(session: Session) {
-        val myCrossSigningKeys = session.getCryptoService().getCrossSigningService()
+        val myCrossSigningKeys = session.cryptoService().crossSigningService()
                 .getMyCrossSigningKeys()
         val crossSigningEnabledOnAccount = myCrossSigningKeys != null
 

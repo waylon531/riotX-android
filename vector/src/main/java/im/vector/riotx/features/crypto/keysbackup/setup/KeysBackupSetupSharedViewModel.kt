@@ -102,7 +102,7 @@ class KeysBackupSetupSharedViewModel @Inject constructor() : ViewModel() {
         session.let { mxSession ->
             val requestedId = currentRequestId.value!!
 
-            mxSession.getCryptoService().getKeysBackupService().prepareKeysBackupVersion(withPassphrase,
+            mxSession.cryptoService().keysBackupService().prepareKeysBackupVersion(withPassphrase,
                     object : ProgressListener {
                         override fun onProgress(progress: Int, total: Int) {
                             if (requestedId != currentRequestId.value) {
@@ -125,7 +125,7 @@ class KeysBackupSetupSharedViewModel @Inject constructor() : ViewModel() {
                             megolmBackupCreationInfo = data
                             copyHasBeenMade = false
 
-                            val keyBackup = session.getCryptoService().getKeysBackupService()
+                            val keyBackup = session.cryptoService().keysBackupService()
                             createKeysBackup(context, keyBackup)
                         }
 
@@ -145,14 +145,14 @@ class KeysBackupSetupSharedViewModel @Inject constructor() : ViewModel() {
     }
 
     fun forceCreateKeyBackup(context: Context) {
-        val keyBackup = session.getCryptoService().getKeysBackupService()
+        val keyBackup = session.cryptoService().keysBackupService()
         createKeysBackup(context, keyBackup, true)
     }
 
     fun stopAndKeepAfterDetectingExistingOnServer() {
         loadingStatus.value = null
         navigateEvent.value = LiveEvent(NAVIGATE_FINISH)
-        session.getCryptoService().getKeysBackupService().checkAndStartKeysBackup()
+        session.cryptoService().keysBackupService().checkAndStartKeysBackup()
     }
 
     private fun createKeysBackup(context: Context, keysBackup: KeysBackupService, forceOverride: Boolean = false) {

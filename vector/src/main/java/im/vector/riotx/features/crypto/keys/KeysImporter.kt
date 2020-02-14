@@ -56,7 +56,7 @@ class KeysImporter(private val session: Session) {
                         Timber.e(e, "## importKeys()")
                         throw e
                     }
-                    session.getCryptoService().importRoomKeys(data, password, null)
+                    session.cryptoService().importRoomKeys(data, password, null)
                 }
             }.foldToCallback(callback)
         }

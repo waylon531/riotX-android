@@ -48,11 +48,11 @@ interface CryptoService {
 
     fun isCryptoEnabled(): Boolean
 
-    fun getVerificationService(): VerificationService
+    fun verificationService(): VerificationService
 
-    fun getCrossSigningService(): CrossSigningService
+    fun crossSigningService(): CrossSigningService
 
-    fun getKeysBackupService(): KeysBackupService
+    fun keysBackupService(): KeysBackupService
 
     fun isRoomBlacklistUnverifiedDevices(roomId: String): Boolean
 

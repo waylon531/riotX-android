@@ -64,13 +64,13 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
 
     fun start(session: Session) {
         this.session = session
-        session.getCryptoService().getVerificationService().addListener(this)
-        session.getCryptoService().addRoomKeysRequestListener(this)
+        session.cryptoService().verificationService().addListener(this)
+        session.cryptoService().addRoomKeysRequestListener(this)
     }
 
     fun stop() {
-        session?.getCryptoService()?.getVerificationService()?.removeListener(this)
-        session?.getCryptoService()?.removeRoomKeysRequestListener(this)
+        session?.cryptoService()?.verificationService()?.removeListener(this)
+        session?.cryptoService()?.removeRoomKeysRequestListener(this)
         session = null
     }
 
@@ -101,7 +101,7 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
 
         // Add a notification for every incoming request
         GlobalScope.launch(Dispatchers.Main) {
-            val result = session?.getCryptoService()?.downloadKeys(listOf(userId), false)
+            val result = session?.cryptoService()?.downloadKeys(listOf(userId), false)
             val deviceInfo = result?.getObject(userId, deviceId)
             if (null == deviceInfo) {
                 Timber.e("## displayKeyShareDialog() : No details found for device $userId:$deviceId")
@@ -109,10 +109,10 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
                 return@launch
             }
             if (deviceInfo.isUnknown) {
-                session?.getCryptoService()?.setDeviceVerification(DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false), userId, deviceId)
+                session?.cryptoService()?.setDeviceVerification(DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false), userId, deviceId)
                 deviceInfo.trustLevel = DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false)
                 // can we get more info on this device?
-                val deviceList = session?.getCryptoService()?.getDevicesList()
+                val deviceList = session?.cryptoService()?.getDevicesList()
                 deviceList?.find { it.deviceId == deviceId }?.let {
                     postAlert(context, userId, deviceId, true, deviceInfo, it)
                 } ?: run {

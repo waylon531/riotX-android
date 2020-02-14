@@ -96,7 +96,7 @@ class AvatarRenderer @Inject constructor(private val activeSessionHolder: Active
     // PRIVATE API *********************************************************************************
 
     private fun buildGlideRequest(glideRequest: GlideRequests, avatarUrl: String?): GlideRequest<Drawable> {
-        val resolvedUrl = activeSessionHolder.getActiveSession().getContentUrlResolver()
+        val resolvedUrl = activeSessionHolder.getActiveSession().contentUrlResolver()
                 .resolveThumbnail(avatarUrl, THUMBNAIL_SIZE, THUMBNAIL_SIZE, ContentUrlResolver.ThumbnailMethod.SCALE)
 
         return glideRequest

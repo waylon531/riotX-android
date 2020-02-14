@@ -74,7 +74,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
 
     init {
         refreshDevicesList()
-        session.getCryptoService().getVerificationService().addListener(this)
+        session.cryptoService().verificationService().addListener(this)
 
         session.rx().liveUserCryptoDevices(session.myUserId)
                 .execute {
@@ -85,7 +85,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     }
 
     override fun onCleared() {
-        session.getCryptoService().getVerificationService().removeListener(this)
+        session.cryptoService().verificationService().removeListener(this)
         super.onCleared()
     }
 
@@ -104,7 +104,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     private fun refreshDevicesList() {
         if (!session.sessionParams.credentials.deviceId.isNullOrEmpty()) {
             // display something asap
-            val localKnown = session.getCryptoService().getUserDevices(session.myUserId).map {
+            val localKnown = session.cryptoService().getUserDevices(session.myUserId).map {
                 DeviceInfo(
                         user_id = session.myUserId,
                         deviceId = it.deviceId,
@@ -116,22 +116,22 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
                         myDeviceId = session.sessionParams.credentials.deviceId ?: "",
                         // Keep known list if we have it, and let refresh go in backgroung
                         devices = this.devices.takeIf { it is Success } ?: Success(localKnown),
-                        cryptoDevices = Success(session.getCryptoService().getUserDevices(session.myUserId))
+                        cryptoDevices = Success(session.cryptoService().getUserDevices(session.myUserId))
                 )
             }
             viewModelScope.launch {
-                val deviceList = session.getCryptoService().getDevicesList()
+                val deviceList = session.cryptoService().getDevicesList()
                 setState {
                     copy(devices = Success(deviceList))
                 }
                 try {
-                    session.getCryptoService().downloadKeys(listOf(session.myUserId), true)
+                    session.cryptoService().downloadKeys(listOf(session.myUserId), true)
                 } catch (failure: Throwable) {
                     Timber.v("Failure downloading keys")
                 }
                 setState {
                     copy(
-                            cryptoDevices = Success(session.getCryptoService().getUserDevices(session.myUserId))
+                            cryptoDevices = Success(session.cryptoService().getUserDevices(session.myUserId))
                     )
                 }
             }
@@ -152,7 +152,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     }
 
     private fun handleVerify(action: DevicesAction.VerifyMyDevice) {
-        val txID = session.getCryptoService().getVerificationService().requestKeyVerification(supportedVerificationMethods, session.myUserId, listOf(action.deviceId))
+        val txID = session.cryptoService().verificationService().requestKeyVerification(supportedVerificationMethods, session.myUserId, listOf(action.deviceId))
         _viewEvents.post(DevicesViewEvents.ShowVerifyDevice(
                 session.myUserId,
                 txID.transactionId
@@ -169,7 +169,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     private fun handleRename(action: DevicesAction.Rename) {
         viewModelScope.launch {
             try {
-                session.getCryptoService().setDeviceName(action.deviceId, action.newName)
+                session.cryptoService().setDeviceName(action.deviceId, action.newName)
                 setState {
                     copy(request = Success(Unit))
                 }
@@ -191,7 +191,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
         setState { copy(request = Loading()) }
         viewModelScope.launch {
             try {
-                session.getCryptoService().deleteDevice(deviceId)
+                session.cryptoService().deleteDevice(deviceId)
                 setState {
                     copy(request = Success(Unit))
                 }
@@ -234,7 +234,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
         setState { copy(request = Loading()) }
         viewModelScope.launch {
             try {
-                session.getCryptoService().deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password)
+                session.cryptoService().deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password)
                 _currentDeviceId = null
                 _currentSession = null
                 setState {

@@ -64,7 +64,7 @@ class DeviceVerificationInfoBottomSheetViewModel @AssistedInject constructor(@As
         }
         viewModelScope.launch {
             try {
-                val deviceInfo = session.getCryptoService().getDeviceInfo(deviceId)
+                val deviceInfo = session.cryptoService().getDeviceInfo(deviceId)
                 setState {
                     copy(deviceInfo = Success(deviceInfo))
                 }

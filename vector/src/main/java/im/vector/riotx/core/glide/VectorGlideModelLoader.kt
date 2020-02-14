@@ -100,7 +100,7 @@ class VectorGlideDataFetcher(private val activeSessionHolder: ActiveSessionHolde
             callback.onDataReady(FileInputStream(initialFile))
             return
         }
-        val contentUrlResolver = activeSessionHolder.getActiveSession().getContentUrlResolver()
+        val contentUrlResolver = activeSessionHolder.getActiveSession().contentUrlResolver()
         val url = contentUrlResolver.resolveFullSize(data.url)
                 ?: return
 

@@ -37,7 +37,7 @@ class KeysExporter(private val session: Session) {
     fun export(context: Context, password: String, callback: MatrixCallback<String>) {
         GlobalScope.launch(Dispatchers.Main) {
             runCatching {
-                val data = session.getCryptoService().exportRoomKeys(password)
+                val data = session.cryptoService().exportRoomKeys(password)
                 withContext(Dispatchers.IO) {
                     val parentDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                     val file = File(parentDir, "riotx-keys-" + System.currentTimeMillis() + ".txt")

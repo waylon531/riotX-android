@@ -128,17 +128,17 @@ interface Session :
     /**
      * Returns the ContentUrlResolver associated to the session.
      */
-    fun getContentUrlResolver(): ContentUrlResolver
+    fun contentUrlResolver(): ContentUrlResolver
 
     /**
      * Returns the ContentUploadProgressTracker associated with the session
      */
-    fun getContentUploadStateTracker(): ContentUploadStateTracker
+    fun contentUploadStateTracker(): ContentUploadStateTracker
 
     /**
      * Return the crypto service associated with the session
      */
-    fun getCryptoService(): CryptoService
+    fun cryptoService(): CryptoService
 
     /**
      * Add a listener to the session.
