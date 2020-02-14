@@ -47,7 +47,6 @@ interface Session :
         RoomDirectoryService,
         GroupService,
         UserService,
-        CryptoService,
         CacheService,
         SignOutService,
         FilterService,
@@ -129,12 +128,17 @@ interface Session :
     /**
      * Returns the ContentUrlResolver associated to the session.
      */
-    fun contentUrlResolver(): ContentUrlResolver
+    fun getContentUrlResolver(): ContentUrlResolver
 
     /**
      * Returns the ContentUploadProgressTracker associated with the session
      */
-    fun contentUploadProgressTracker(): ContentUploadStateTracker
+    fun getContentUploadStateTracker(): ContentUploadStateTracker
+
+    /**
+     * Return the crypto service associated with the session
+     */
+    fun getCryptoService(): CryptoService
 
     /**
      * Add a listener to the session.

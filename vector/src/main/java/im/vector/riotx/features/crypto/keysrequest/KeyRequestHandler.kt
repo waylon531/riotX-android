@@ -20,7 +20,6 @@
 package im.vector.riotx.features.crypto.keysrequest
 
 import android.content.Context
-import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.api.session.crypto.keyshare.RoomKeysRequestListener
 import im.vector.matrix.android.api.session.crypto.sas.VerificationService
@@ -31,9 +30,7 @@ import im.vector.matrix.android.internal.crypto.IncomingRoomKeyRequest
 import im.vector.matrix.android.internal.crypto.IncomingRoomKeyRequestCancellation
 import im.vector.matrix.android.internal.crypto.crosssigning.DeviceTrustLevel
 import im.vector.matrix.android.internal.crypto.model.CryptoDeviceInfo
-import im.vector.matrix.android.internal.crypto.model.MXUsersDevicesMap
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
-import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.riotx.R
 import im.vector.riotx.features.popup.PopupAlertManager
 import kotlinx.coroutines.Dispatchers
@@ -67,13 +64,13 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
 
     fun start(session: Session) {
         this.session = session
-        session.getVerificationService().addListener(this)
-        session.addRoomKeysRequestListener(this)
+        session.getCryptoService().getVerificationService().addListener(this)
+        session.getCryptoService().addRoomKeysRequestListener(this)
     }
 
     fun stop() {
-        session?.getVerificationService()?.removeListener(this)
-        session?.removeRoomKeysRequestListener(this)
+        session?.getCryptoService()?.getVerificationService()?.removeListener(this)
+        session?.getCryptoService()?.removeRoomKeysRequestListener(this)
         session = null
     }
 
@@ -104,7 +101,7 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
 
         // Add a notification for every incoming request
         GlobalScope.launch(Dispatchers.Main) {
-            val result = session?.downloadKeys(listOf(userId), false)
+            val result = session?.getCryptoService()?.downloadKeys(listOf(userId), false)
             val deviceInfo = result?.getObject(userId, deviceId)
             if (null == deviceInfo) {
                 Timber.e("## displayKeyShareDialog() : No details found for device $userId:$deviceId")
@@ -112,10 +109,10 @@ class KeyRequestHandler @Inject constructor(private val context: Context)
                 return@launch
             }
             if (deviceInfo.isUnknown) {
-                session?.setDeviceVerification(DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false), userId, deviceId)
+                session?.getCryptoService()?.setDeviceVerification(DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false), userId, deviceId)
                 deviceInfo.trustLevel = DeviceTrustLevel(crossSigningVerified = false, locallyVerified = false)
                 // can we get more info on this device?
-                val deviceList = session?.getDevicesList()
+                val deviceList = session?.getCryptoService()?.getDevicesList()
                 deviceList?.find { it.deviceId == deviceId }?.let {
                     postAlert(context, userId, deviceId, true, deviceInfo, it)
                 } ?: run {

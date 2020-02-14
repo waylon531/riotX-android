@@ -27,7 +27,6 @@ import com.airbnb.mvrx.Uninitialized
 import com.airbnb.mvrx.ViewModelContext
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.internal.crypto.model.CryptoDeviceInfo
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
@@ -65,7 +64,7 @@ class DeviceVerificationInfoBottomSheetViewModel @AssistedInject constructor(@As
         }
         viewModelScope.launch {
             try {
-                val deviceInfo = session.getDeviceInfo(deviceId)
+                val deviceInfo = session.getCryptoService().getDeviceInfo(deviceId)
                 setState {
                     copy(deviceInfo = Success(deviceInfo))
                 }

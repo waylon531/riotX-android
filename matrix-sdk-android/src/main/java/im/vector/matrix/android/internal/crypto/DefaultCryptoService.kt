@@ -81,6 +81,7 @@ import im.vector.matrix.android.internal.util.fetchCopied
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.matrix.olm.OlmManager
@@ -291,11 +292,13 @@ internal class DefaultCryptoService @Inject constructor(
     /**
      * Close the crypto
      */
-    fun close() = runBlocking(coroutineDispatchers.crypto) {
+    fun close() {
         cryptoCoroutineScope.coroutineContext.cancelChildren(CancellationException("Closing crypto module"))
-        outgoingRoomKeyRequestManager.stop()
-        olmDevice.release()
-        cryptoStore.close()
+        cryptoCoroutineScope.launch(coroutineDispatchers.crypto) {
+            outgoingRoomKeyRequestManager.stop()
+            olmDevice.release()
+            cryptoStore.close()
+        }
     }
 
     // Aways enabled on RiotX
@@ -318,7 +321,7 @@ internal class DefaultCryptoService @Inject constructor(
      *
      * @param syncResponse the syncResponse
      */
-    suspend fun onSyncCompleted(syncResponse: SyncResponse)  {
+    suspend fun onSyncCompleted(syncResponse: SyncResponse) {
         runCatching {
             if (syncResponse.deviceLists != null) {
                 deviceListManager.handleDeviceListsChanges(syncResponse.deviceLists.changed, syncResponse.deviceLists.left)
@@ -589,7 +592,6 @@ internal class DefaultCryptoService @Inject constructor(
      *
      * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @param callback the callback to return data or null
      */
     override suspend fun decryptEventAsync(event: Event, timeline: String): MXEventDecryptionResult {
         return decryptEventTask.decryptEvent(event, timeline)

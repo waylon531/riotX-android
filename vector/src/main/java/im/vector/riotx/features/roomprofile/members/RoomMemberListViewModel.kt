@@ -95,7 +95,7 @@ class RoomMemberListViewModel @AssistedInject constructor(@Assisted initialState
             room.rx().liveRoomMembers(roomMemberQueryParams)
                     .observeOn(AndroidSchedulers.mainThread())
                     .switchMap { membersSummary ->
-                        session.getLiveCryptoDeviceInfo(membersSummary.map { it.userId })
+                        session.getCryptoService().getLiveCryptoDeviceInfo(membersSummary.map { it.userId })
                                 .asObservable()
                                 .doOnError { Timber.e(it) }
                                 .map { deviceList ->
@@ -104,7 +104,7 @@ class RoomMemberListViewModel @AssistedInject constructor(@Assisted initialState
                                         val allDeviceTrusted = it.value.fold(it.value.isNotEmpty()) { prev, next ->
                                             prev && next.trustLevel?.isCrossSigningVerified().orFalse()
                                         }
-                                        if (session.getCrossSigningService().getUserCrossSigningKeys(it.key)?.isTrusted().orFalse()) {
+                                        if (session.getCryptoService().getCrossSigningService().getUserCrossSigningKeys(it.key)?.isTrusted().orFalse()) {
                                             if (allDeviceTrusted) RoomEncryptionTrustLevel.Trusted else RoomEncryptionTrustLevel.Warning
                                         } else {
                                             RoomEncryptionTrustLevel.Default

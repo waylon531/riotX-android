@@ -113,7 +113,7 @@ class ImageContentRenderer @Inject constructor(private val activeSessionHolder: 
                     .load(data)
         } else {
             // Clear image
-            val contentUrlResolver = activeSessionHolder.getActiveSession().contentUrlResolver()
+            val contentUrlResolver = activeSessionHolder.getActiveSession().getContentUrlResolver()
             val resolvedUrl = when (mode) {
                 Mode.FULL_SIZE,
                 Mode.STICKER   -> contentUrlResolver.resolveFullSize(data.url)
@@ -133,7 +133,7 @@ class ImageContentRenderer @Inject constructor(private val activeSessionHolder: 
         imageView.contentDescription = data.filename
 
         val (width, height) = processSize(data, Mode.THUMBNAIL)
-        val contentUrlResolver = activeSessionHolder.getActiveSession().contentUrlResolver()
+        val contentUrlResolver = activeSessionHolder.getActiveSession().getContentUrlResolver()
         val fullSize = contentUrlResolver.resolveFullSize(data.url)
         val thumbnail = contentUrlResolver.resolveThumbnail(data.url, width, height, ContentUrlResolver.ThumbnailMethod.SCALE)
 

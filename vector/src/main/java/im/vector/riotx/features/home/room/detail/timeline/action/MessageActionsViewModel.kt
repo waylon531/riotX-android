@@ -253,7 +253,7 @@ class MessageActionsViewModel @AssistedInject constructor(@Assisted
 
                     if (canShare(msgType)) {
                         if (messageContent is MessageImageContent) {
-                            session.contentUrlResolver().resolveFullSize(messageContent.url)?.let { url ->
+                            session.getContentUrlResolver().resolveFullSize(messageContent.url)?.let { url ->
                                 add(EventSharedAction.Share(url))
                             }
                         }

@@ -50,7 +50,7 @@ class VideoContentRenderer @Inject constructor(private val activeSessionHolder: 
                loadingView: ProgressBar,
                videoView: VideoView,
                errorView: TextView) {
-        val contentUrlResolver = activeSessionHolder.getActiveSession().contentUrlResolver()
+        val contentUrlResolver = activeSessionHolder.getActiveSession().getContentUrlResolver()
 
         if (data.elementToDecrypt != null) {
             Timber.v("Decrypt video")

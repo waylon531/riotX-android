@@ -21,7 +21,6 @@ import android.os.Environment
 import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.internal.extensions.foldToCallback
-import im.vector.matrix.android.internal.util.awaitCallback
 import im.vector.riotx.core.files.addEntryToDownloadManager
 import im.vector.riotx.core.files.writeToFile
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +37,7 @@ class KeysExporter(private val session: Session) {
     fun export(context: Context, password: String, callback: MatrixCallback<String>) {
         GlobalScope.launch(Dispatchers.Main) {
             runCatching {
-                val data = session.exportRoomKeys(password)
+                val data = session.getCryptoService().exportRoomKeys(password)
                 withContext(Dispatchers.IO) {
                     val parentDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                     val file = File(parentDir, "riotx-keys-" + System.currentTimeMillis() + ".txt")

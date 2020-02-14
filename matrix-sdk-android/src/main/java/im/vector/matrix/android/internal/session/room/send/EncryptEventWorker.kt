@@ -76,7 +76,6 @@ internal class EncryptEventWorker(context: Context, params: WorkerParameters)
             localMutableContent.remove(it)
         }
         return try {
-            crypto.downloadKeys(listOf("@testxsigningvfe:matrix.org"), true)
             val result = crypto.encryptEventContent(localMutableContent, localEvent.type, params.roomId)
             val modifiedContent = HashMap(result.eventContent)
             params.keepKeys?.forEach { toKeep ->

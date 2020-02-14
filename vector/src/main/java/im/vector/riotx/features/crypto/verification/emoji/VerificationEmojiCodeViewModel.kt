@@ -56,16 +56,16 @@ class VerificationEmojiCodeViewModel @AssistedInject constructor(
 
     init {
         withState { state ->
-            refreshStateFromTx(session.getVerificationService()
+            refreshStateFromTx(session.getCryptoService().getVerificationService()
                     .getExistingTransaction(state.otherUser?.id ?: "", state.transactionId
                             ?: "") as? SasVerificationTransaction)
         }
 
-        session.getVerificationService().addListener(this)
+        session.getCryptoService().getVerificationService().addListener(this)
     }
 
     override fun onCleared() {
-        session.getVerificationService().removeListener(this)
+        session.getCryptoService().getVerificationService().removeListener(this)
         super.onCleared()
     }
 

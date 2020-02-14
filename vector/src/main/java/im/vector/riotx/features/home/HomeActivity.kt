@@ -28,10 +28,7 @@ import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
-import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.session.Session
-import im.vector.matrix.android.internal.crypto.model.CryptoDeviceInfo
-import im.vector.matrix.android.internal.crypto.model.MXUsersDevicesMap
 import im.vector.riotx.R
 import im.vector.riotx.core.di.ActiveSessionHolder
 import im.vector.riotx.core.di.ScreenComponent
@@ -135,7 +132,7 @@ class HomeActivity : VectorBaseActivity(), ToolbarConfigurable {
         // ensure keys are downloaded
         lifecycleScope.launch(Dispatchers.Main) {
             try {
-                session.downloadKeys(listOf(session.myUserId), true)
+                session.getCryptoService().downloadKeys(listOf(session.myUserId), true)
                 alertCompleteSecurity(session)
             } catch (failure: Throwable) {
 
@@ -145,7 +142,7 @@ class HomeActivity : VectorBaseActivity(), ToolbarConfigurable {
     }
 
     private fun alertCompleteSecurity(session: Session) {
-        val myCrossSigningKeys = session.getCrossSigningService()
+        val myCrossSigningKeys = session.getCryptoService().getCrossSigningService()
                 .getMyCrossSigningKeys()
         val crossSigningEnabledOnAccount = myCrossSigningKeys != null
 

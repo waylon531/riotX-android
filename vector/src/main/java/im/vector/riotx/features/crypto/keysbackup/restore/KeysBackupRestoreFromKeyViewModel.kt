@@ -47,7 +47,7 @@ class KeysBackupRestoreFromKeyViewModel @Inject constructor() : ViewModel() {
 
     fun recoverKeys(context: Context, sharedViewModel: KeysBackupRestoreSharedViewModel) {
         val session = sharedViewModel.session
-        val keysBackup = session.getKeysBackupService()
+        val keysBackup = session.getCryptoService().getKeysBackupService()
 
         recoveryCodeErrorText.value = null
         val recoveryKey = recoveryCode.value!!

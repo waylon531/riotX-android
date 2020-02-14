@@ -95,7 +95,6 @@ internal class DefaultSession @Inject constructor(
         RoomDirectoryService by roomDirectoryService.get(),
         GroupService by groupService.get(),
         UserService by userService.get(),
-        CryptoService by cryptoService.get(),
         SignOutService by signOutService.get(),
         FilterService by filterService.get(),
         PushRuleService by pushRuleService.get(),
@@ -197,9 +196,11 @@ internal class DefaultSession @Inject constructor(
         sessionListeners.dispatchGlobalError(globalError)
     }
 
-    override fun contentUrlResolver() = contentUrlResolver
+    override fun getContentUrlResolver() = contentUrlResolver
 
-    override fun contentUploadProgressTracker() = contentUploadProgressTracker
+    override fun getContentUploadStateTracker() = contentUploadProgressTracker
+
+    override fun getCryptoService(): CryptoService = cryptoService.get()
 
     override fun addListener(listener: Session.Listener) {
         sessionListeners.addListener(listener)

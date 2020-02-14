@@ -28,7 +28,6 @@ import com.airbnb.mvrx.Uninitialized
 import com.airbnb.mvrx.ViewModelContext
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import im.vector.matrix.android.api.MatrixCallback
 import im.vector.matrix.android.api.failure.Failure
 import im.vector.matrix.android.api.session.Session
 import im.vector.matrix.android.api.session.crypto.sas.VerificationService
@@ -36,9 +35,7 @@ import im.vector.matrix.android.api.session.crypto.sas.VerificationTransaction
 import im.vector.matrix.android.api.session.crypto.sas.VerificationTxState
 import im.vector.matrix.android.internal.auth.data.LoginFlowTypes
 import im.vector.matrix.android.internal.crypto.model.CryptoDeviceInfo
-import im.vector.matrix.android.internal.crypto.model.MXUsersDevicesMap
 import im.vector.matrix.android.internal.crypto.model.rest.DeviceInfo
-import im.vector.matrix.android.internal.crypto.model.rest.DevicesListResponse
 import im.vector.matrix.rx.rx
 import im.vector.riotx.core.platform.VectorViewModel
 import im.vector.riotx.features.crypto.verification.supportedVerificationMethods
@@ -77,7 +74,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
 
     init {
         refreshDevicesList()
-        session.getVerificationService().addListener(this)
+        session.getCryptoService().getVerificationService().addListener(this)
 
         session.rx().liveUserCryptoDevices(session.myUserId)
                 .execute {
@@ -88,7 +85,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     }
 
     override fun onCleared() {
-        session.getVerificationService().removeListener(this)
+        session.getCryptoService().getVerificationService().removeListener(this)
         super.onCleared()
     }
 
@@ -107,7 +104,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     private fun refreshDevicesList() {
         if (!session.sessionParams.credentials.deviceId.isNullOrEmpty()) {
             // display something asap
-            val localKnown = session.getUserDevices(session.myUserId).map {
+            val localKnown = session.getCryptoService().getUserDevices(session.myUserId).map {
                 DeviceInfo(
                         user_id = session.myUserId,
                         deviceId = it.deviceId,
@@ -119,22 +116,22 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
                         myDeviceId = session.sessionParams.credentials.deviceId ?: "",
                         // Keep known list if we have it, and let refresh go in backgroung
                         devices = this.devices.takeIf { it is Success } ?: Success(localKnown),
-                        cryptoDevices = Success(session.getUserDevices(session.myUserId))
+                        cryptoDevices = Success(session.getCryptoService().getUserDevices(session.myUserId))
                 )
             }
             viewModelScope.launch {
-                val deviceList = session.getDevicesList()
+                val deviceList = session.getCryptoService().getDevicesList()
                 setState {
                     copy(devices = Success(deviceList))
                 }
                 try {
-                    session.downloadKeys(listOf(session.myUserId), true)
+                    session.getCryptoService().downloadKeys(listOf(session.myUserId), true)
                 } catch (failure: Throwable) {
                     Timber.v("Failure downloading keys")
                 }
                 setState {
                     copy(
-                            cryptoDevices = Success(session.getUserDevices(session.myUserId))
+                            cryptoDevices = Success(session.getCryptoService().getUserDevices(session.myUserId))
                     )
                 }
             }
@@ -155,7 +152,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     }
 
     private fun handleVerify(action: DevicesAction.VerifyMyDevice) {
-        val txID = session.getVerificationService().requestKeyVerification(supportedVerificationMethods, session.myUserId, listOf(action.deviceId))
+        val txID = session.getCryptoService().getVerificationService().requestKeyVerification(supportedVerificationMethods, session.myUserId, listOf(action.deviceId))
         _viewEvents.post(DevicesViewEvents.ShowVerifyDevice(
                 session.myUserId,
                 txID.transactionId
@@ -172,7 +169,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
     private fun handleRename(action: DevicesAction.Rename) {
         viewModelScope.launch {
             try {
-                session.setDeviceName(action.deviceId, action.newName)
+                session.getCryptoService().setDeviceName(action.deviceId, action.newName)
                 setState {
                     copy(request = Success(Unit))
                 }
@@ -194,7 +191,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
         setState { copy(request = Loading()) }
         viewModelScope.launch {
             try {
-                session.deleteDevice(deviceId)
+                session.getCryptoService().deleteDevice(deviceId)
                 setState {
                     copy(request = Success(Unit))
                 }
@@ -237,7 +234,7 @@ class DevicesViewModel @AssistedInject constructor(@Assisted initialState: Devic
         setState { copy(request = Loading()) }
         viewModelScope.launch {
             try {
-                session.deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password)
+                session.getCryptoService().deleteDeviceWithUserPassword(currentDeviceId, _currentSession, action.password)
                 _currentDeviceId = null
                 _currentSession = null
                 setState {

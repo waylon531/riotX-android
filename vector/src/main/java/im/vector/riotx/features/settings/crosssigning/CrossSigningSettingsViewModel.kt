@@ -57,8 +57,8 @@ class CrossSigningSettingsViewModel @AssistedInject constructor(@Assisted privat
                 .execute {
                     val crossSigningKeys = it.invoke()?.getOrNull()
                     val xSigningIsEnableInAccount = crossSigningKeys != null
-                    val xSigningKeysAreTrusted = session.getCrossSigningService().checkUserTrust(session.myUserId).isVerified()
-                    val xSigningKeyCanSign = session.getCrossSigningService().canCrossSign()
+                    val xSigningKeysAreTrusted = session.getCryptoService().getCrossSigningService().checkUserTrust(session.myUserId).isVerified()
+                    val xSigningKeyCanSign = session.getCryptoService().getCrossSigningService().canCrossSign()
                     copy(
                             crossSigningInfo = crossSigningKeys,
                             xSigningIsEnableInAccount = xSigningIsEnableInAccount,
@@ -97,7 +97,7 @@ class CrossSigningSettingsViewModel @AssistedInject constructor(@Assisted privat
         setState {
             copy(isUploadingKeys = true)
         }
-        session.getCrossSigningService().initializeCrossSigning(auth, object : MatrixCallback<Unit> {
+        session.getCryptoService().getCrossSigningService().initializeCrossSigning(auth, object : MatrixCallback<Unit> {
             override fun onSuccess(data: Unit) {
                 _pendingSession = null
 

@@ -63,7 +63,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
         VerificationService.VerificationListener {
 
     init {
-        session.getVerificationService().addListener(this)
+        session.getCryptoService().getVerificationService().addListener(this)
 
         val userItem = session.getUser(args.otherUserId)
 
@@ -73,7 +73,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
         val pr = if (isWaitingForOtherMode) {
             // See if active tx for this user and take it
 
-            session.getVerificationService().getExistingVerificationRequest(args.otherUserId)
+            session.getCryptoService().getVerificationService().getExistingVerificationRequest(args.otherUserId)
                     ?.lastOrNull { !it.isFinished }
                     ?.also { verificationRequest ->
                         if (verificationRequest.isIncoming && !verificationRequest.isReady) {
@@ -82,15 +82,15 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                         }
                     }
         } else {
-            session.getVerificationService().getExistingVerificationRequest(args.otherUserId, args.verificationId)
+            session.getCryptoService().getVerificationService().getExistingVerificationRequest(args.otherUserId, args.verificationId)
         }
 
         val sasTx = (pr?.transactionId ?: args.verificationId)?.let {
-            session.getVerificationService().getExistingTransaction(args.otherUserId, it) as? SasVerificationTransaction
+            session.getCryptoService().getVerificationService().getExistingTransaction(args.otherUserId, it) as? SasVerificationTransaction
         }
 
         val qrTx = (pr?.transactionId ?: args.verificationId)?.let {
-            session.getVerificationService().getExistingTransaction(args.otherUserId, it) as? QrCodeVerificationTransaction
+            session.getCryptoService().getVerificationService().getExistingTransaction(args.otherUserId, it) as? QrCodeVerificationTransaction
         }
 
         setState {
@@ -108,7 +108,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
 
         if (autoReady) {
             // TODO, can I be here in DM mode? in this case should test if roomID is null?
-            session.getVerificationService()
+            session.getCryptoService().getVerificationService()
                     .readyPendingVerification(supportedVerificationMethods,
                             pr!!.otherUserId,
                             pr.transactionId ?: "")
@@ -116,7 +116,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
     }
 
     override fun onCleared() {
-        session.getVerificationService().removeListener(this)
+        session.getCryptoService().getVerificationService().removeListener(this)
         super.onCleared()
     }
 
@@ -164,6 +164,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                                         roomId = data,
                                         pendingRequest = Success(
                                                 session
+                                                        .getCryptoService()
                                                         .getVerificationService()
                                                         .requestKeyVerificationInDMs(supportedVerificationMethods, otherUserId, data, pendingLocalId)
                                         )
@@ -181,7 +182,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                     setState {
                         copy(
                                 pendingRequest = Success(session
-                                        .getVerificationService()
+                                        .getCryptoService().getVerificationService()
                                         .requestKeyVerificationInDMs(supportedVerificationMethods, otherUserId, roomId)
                                 )
                         )
@@ -190,18 +191,18 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                 Unit
             }
             is VerificationAction.StartSASVerification         -> {
-                val request = session.getVerificationService().getExistingVerificationRequest(otherUserId, action.pendingRequestTransactionId)
+                val request = session.getCryptoService().getVerificationService().getExistingVerificationRequest(otherUserId, action.pendingRequestTransactionId)
                         ?: return@withState
                 val otherDevice = if (request.isIncoming) request.requestInfo?.fromDevice else request.readyInfo?.fromDevice
                 if (roomId == null) {
-                    session.getVerificationService().beginKeyVerification(
+                    session.getCryptoService().getVerificationService().beginKeyVerification(
                             VerificationMethod.SAS,
                             otherUserId = request.otherUserId,
                             otherDeviceId = otherDevice ?: "",
                             transactionId = action.pendingRequestTransactionId
                     )
                 } else {
-                    session.getVerificationService().beginKeyVerificationInDMs(
+                    session.getCryptoService().getVerificationService().beginKeyVerificationInDMs(
                             VerificationMethod.SAS,
                             transactionId = action.pendingRequestTransactionId,
                             roomId = roomId,
@@ -213,7 +214,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                 Unit
             }
             is VerificationAction.RemoteQrCodeScanned          -> {
-                val existingTransaction = session.getVerificationService()
+                val existingTransaction = session.getCryptoService().getVerificationService()
                         .getExistingTransaction(action.otherUserId, action.transactionId) as? QrCodeVerificationTransaction
                 existingTransaction
                         ?.userHasScannedOtherQrCode(action.scannedData)
@@ -221,7 +222,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
             is VerificationAction.OtherUserScannedSuccessfully -> {
                 val transactionId = state.transactionId ?: return@withState
 
-                val existingTransaction = session.getVerificationService()
+                val existingTransaction = session.getCryptoService().getVerificationService()
                         .getExistingTransaction(otherUserId, transactionId) as? QrCodeVerificationTransaction
                 existingTransaction
                         ?.otherUserScannedMyQrCode()
@@ -229,18 +230,18 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
             is VerificationAction.OtherUserDidNotScanned       -> {
                 val transactionId = state.transactionId ?: return@withState
 
-                val existingTransaction = session.getVerificationService()
+                val existingTransaction = session.getCryptoService().getVerificationService()
                         .getExistingTransaction(otherUserId, transactionId) as? QrCodeVerificationTransaction
                 existingTransaction
                         ?.otherUserDidNotScannedMyQrCode()
             }
             is VerificationAction.SASMatchAction               -> {
-                (session.getVerificationService()
+                (session.getCryptoService().getVerificationService()
                         .getExistingTransaction(action.otherUserId, action.sasTransactionId)
                         as? SasVerificationTransaction)?.userHasVerifiedShortCode()
             }
             is VerificationAction.SASDoNotMatchAction          -> {
-                (session.getVerificationService()
+                (session.getCryptoService().getVerificationService()
                         .getExistingTransaction(action.otherUserId, action.sasTransactionId)
                         as? SasVerificationTransaction)
                         ?.shortCodeDoesNotMatch()
@@ -312,7 +313,7 @@ class VerificationBottomSheetViewModel @AssistedInject constructor(@Assisted ini
                 if (!pr.isReady) {
                     // auto ready in this case, as we are waiting
                     // TODO, can I be here in DM mode? in this case should test if roomID is null?
-                    session.getVerificationService()
+                    session.getCryptoService().getVerificationService()
                             .readyPendingVerification(supportedVerificationMethods,
                                     pr.otherUserId,
                                     pr.transactionId ?: "")

@@ -47,13 +47,13 @@ class KeysBackupSettingsViewModel @AssistedInject constructor(@Assisted initialS
         }
     }
 
-    private var keysBackupService: KeysBackupService = session.getKeysBackupService()
+    private var keysBackupService: KeysBackupService = session.getCryptoService().getKeysBackupService()
 
     init {
         setState {
             this.copy(
-                    keysBackupState = session.getKeysBackupService().state,
-                    keysBackupVersion = session.getKeysBackupService().keysBackupVersion
+                    keysBackupState = session.getCryptoService().getKeysBackupService().state,
+                    keysBackupVersion = session.getCryptoService().getKeysBackupService().keysBackupVersion
             )
         }
         keysBackupService.addListener(this)
