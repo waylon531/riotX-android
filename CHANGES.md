@@ -5,7 +5,7 @@ Features ✨:
  -
 
 Improvements 🙌:
- -
+ - Support homeserver discovery from MXID (#476)
 
 Bugfix 🐛:
  - Fix crash on attachment preview screen (#1088)
