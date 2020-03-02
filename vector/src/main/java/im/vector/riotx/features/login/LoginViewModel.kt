@@ -486,19 +486,24 @@ class LoginViewModel @AssistedInject constructor(
                 identityServerUri = wellKnownPrompt.identityServerUrl?.let { Uri.parse(it) }
         )
 
-        authenticationService.directAuthentication(homeServerConnectionConfig, action.username, action.password, action.initialDeviceName, object : MatrixCallback<Session> {
-            override fun onSuccess(data: Session) {
-                onSessionCreated(data)
-            }
+        authenticationService.directAuthentication(
+                homeServerConnectionConfig,
+                action.username,
+                action.password,
+                action.initialDeviceName,
+                object : MatrixCallback<Session> {
+                    override fun onSuccess(data: Session) {
+                        onSessionCreated(data)
+                    }
 
-            override fun onFailure(failure: Throwable) {
-                setState {
-                    copy(
-                            asyncLoginAction = Fail(failure)
-                    )
-                }
-            }
-        })
+                    override fun onFailure(failure: Throwable) {
+                        setState {
+                            copy(
+                                    asyncLoginAction = Fail(failure)
+                            )
+                        }
+                    }
+                })
     }
 
     private fun handleLogin(action: LoginAction.LoginOrRegister) {
