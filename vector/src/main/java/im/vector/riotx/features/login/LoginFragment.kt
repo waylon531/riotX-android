@@ -165,7 +165,7 @@ class LoginFragment @Inject constructor() : AbstractLoginFragment() {
 
     @OnClick(R.id.forgetPasswordButton)
     fun forgetPasswordClicked() {
-        loginSharedActionViewModel.post(LoginNavigation.OnForgetPasswordClicked)
+        loginViewModel.handle(LoginAction.PostViewEvent(LoginViewEvents.OnForgetPasswordClicked))
     }
 
     private fun setupPasswordReveal() {

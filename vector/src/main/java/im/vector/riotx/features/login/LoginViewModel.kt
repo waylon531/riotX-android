@@ -114,7 +114,8 @@ class LoginViewModel @AssistedInject constructor(
             is LoginAction.RegisterAction             -> handleRegisterAction(action)
             is LoginAction.ResetAction                -> handleResetAction(action)
             is LoginAction.SetupSsoForSessionRecovery -> handleSetupSsoForSessionRecovery(action)
-        }
+            is LoginAction.PostViewEvent              -> _viewEvents.post(action.viewEvent)
+        }.exhaustive
     }
 
     private fun handleSetupSsoForSessionRecovery(action: LoginAction.SetupSsoForSessionRecovery) {
@@ -325,11 +326,12 @@ class LoginViewModel @AssistedInject constructor(
             )
         }
 
-        if (action.signMode == SignMode.SignUp) {
-            startRegistrationFlow()
-        } else if (action.signMode == SignMode.SignIn) {
-            startAuthenticationFlow()
-        }
+        when (action.signMode) {
+            SignMode.SignUp             -> startRegistrationFlow()
+            SignMode.SignIn             -> startAuthenticationFlow()
+            SignMode.SignInWithMatrixId -> _viewEvents.post(LoginViewEvents.OnSignModeSelected)
+            SignMode.Unknown            -> Unit
+        }.exhaustive
     }
 
     private fun handleUpdateServerType(action: LoginAction.UpdateServerType) {
@@ -370,6 +372,8 @@ class LoginViewModel @AssistedInject constructor(
                                 resetPasswordEmail = action.email
                         )
                     }
+
+                    _viewEvents.post(LoginViewEvents.OnResetPasswordSendThreePidDone)
                 }
 
                 override fun onFailure(failure: Throwable) {
@@ -410,6 +414,8 @@ class LoginViewModel @AssistedInject constructor(
                                 resetPasswordEmail = null
                         )
                     }
+
+                    _viewEvents.post(LoginViewEvents.OnResetPasswordMailConfirmationSuccess)
                 }
 
                 override fun onFailure(failure: Throwable) {
@@ -545,6 +551,8 @@ class LoginViewModel @AssistedInject constructor(
     private fun startAuthenticationFlow() {
         // Ensure Wizard is ready
         loginWizard
+
+        _viewEvents.post(LoginViewEvents.OnSignModeSelected)
     }
 
     private fun onFlowResponse(flowResult: FlowResult) {
