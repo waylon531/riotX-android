@@ -187,8 +187,8 @@ internal interface IMXCryptoStore {
     fun storeUserDevices(userId: String, devices: Map<String, CryptoDeviceInfo>?)
 
     fun storeUserCrossSigningKeys(userId: String, masterKey: CryptoCrossSigningKey?,
-                                 selfSigningKey: CryptoCrossSigningKey?,
-                                 userSigningKey: CryptoCrossSigningKey?)
+                                  selfSigningKey: CryptoCrossSigningKey?,
+                                  userSigningKey: CryptoCrossSigningKey?)
 
     /**
      * Retrieve the known devices for a user.
@@ -206,6 +206,7 @@ internal interface IMXCryptoStore {
 
     // TODO temp
     fun getLiveDeviceList(): LiveData<List<CryptoDeviceInfo>>
+
     /**
      * Store the crypto algorithm for a room.
      *
@@ -251,7 +252,7 @@ internal interface IMXCryptoStore {
      * @param deviceKey the public key of the other device.
      * @return The Base64 end-to-end session, or null if not found
      */
-    fun getDeviceSession(sessionId: String?, deviceKey: String?): OlmSessionWrapper?
+    fun getDeviceSession(sessionId: String, deviceKey: String): OlmSessionWrapper?
 
     /**
      * Retrieve the last used sessionId, regarding `lastReceivedMessageTs`, or null if no session exist
@@ -406,20 +407,21 @@ internal interface IMXCryptoStore {
     /**
      * Gets the current crosssigning info
      */
-    fun getMyCrossSigningInfo() : MXCrossSigningInfo?
+    fun getMyCrossSigningInfo(): MXCrossSigningInfo?
+
     fun setMyCrossSigningInfo(info: MXCrossSigningInfo?)
 
-    fun getCrossSigningInfo(userId: String) : MXCrossSigningInfo?
-    fun getLiveCrossSigningInfo(userId: String) : LiveData<Optional<MXCrossSigningInfo>>
+    fun getCrossSigningInfo(userId: String): MXCrossSigningInfo?
+    fun getLiveCrossSigningInfo(userId: String): LiveData<Optional<MXCrossSigningInfo>>
     fun setCrossSigningInfo(userId: String, info: MXCrossSigningInfo?)
 
     fun markMyMasterKeyAsLocallyTrusted(trusted: Boolean)
 
     fun storePrivateKeysInfo(msk: String?, usk: String?, ssk: String?)
-    fun getCrossSigningPrivateKeys() : PrivateKeysInfo?
+    fun getCrossSigningPrivateKeys(): PrivateKeysInfo?
 
     fun setUserKeysAsTrusted(userId: String, trusted: Boolean = true)
-    fun setDeviceTrust(userId: String, deviceId: String, crossSignedVerified: Boolean, locallyVerified : Boolean)
+    fun setDeviceTrust(userId: String, deviceId: String, crossSignedVerified: Boolean, locallyVerified: Boolean)
 
     fun clearOtherUserTrust()
 
