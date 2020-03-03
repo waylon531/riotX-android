@@ -21,6 +21,7 @@ package im.vector.matrix.android.internal.crypto
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LiveData
 import com.squareup.moshi.Types
 import com.zhuinden.monarchy.Monarchy
@@ -1093,4 +1094,11 @@ internal class DefaultCryptoService @Inject constructor(
     override fun toString(): String {
         return "DefaultCryptoService of " + credentials.userId + " (" + credentials.deviceId + ")"
     }
+
+    /* ==========================================================================================
+     * For test only
+     * ========================================================================================== */
+
+    @VisibleForTesting
+    val cryptoStoreForTesting = cryptoStore
 }
